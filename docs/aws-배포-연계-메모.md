@@ -47,3 +47,9 @@
 - Keycloak 로그인 동작
 - Catalog/Scaffolder/Argo CD 플러그인 동작
 - 기존 `backstage` 인스턴스 영향 없음
+
+## 트러블슈팅 문서 위치
+
+`backstage-kr` 배포/Argo CD/Ingress 이슈의 상세 트러블슈팅은 운영 레포에 기록:
+
+- `reference-implementation-aws/docs/Backstage_kr_트러블슈팅_기록.md`
