@@ -8,15 +8,15 @@ const useStyles = makeStyles({
   },
   frame: {
     fill: 'none',
-    stroke: '#235588',
+    stroke: '#4DABE8',
     strokeWidth: 8,
     strokeLinejoin: 'round',
   },
   primary: {
-    fill: '#235588',
+    fill: '#4DABE8',
   },
   accent: {
-    fill: '#4DABE8',
+    fill: '#235588',
   },
   white: {
     fill: '#ffffff',
