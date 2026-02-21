@@ -1,9 +1,9 @@
 app:
-  title: CNOE
+  title: ALREADY11
   baseUrl: http://localhost:3000
 
 organization:
-  name: CNOE
+  name: ALREADY11
 
 backend:
   # Used for enabling authentication, secret is shared by all backend plugins

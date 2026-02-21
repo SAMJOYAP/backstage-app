@@ -39,7 +39,7 @@ export const OverviewTable = () => {
 
   const columns: TableColumn[] = [
     {
-      title: "Name",
+      title: "이름",
       field: "name",
       render: (data: any | TableData, _): any => {
         if (data && argoWorkflowsBaseUrl) {
@@ -56,18 +56,18 @@ export const OverviewTable = () => {
       },
     },
     {
-      title: "Phase",
+      title: "단계",
       field: "phase",
     },
-    { title: "Progress", field: "progress" },
+    { title: "진행률", field: "progress" },
     {
-      title: "StartTime",
+      title: "시작 시간",
       field: "startedAt",
       type: "datetime",
       defaultSort: "desc",
     },
-    { title: "EndTime", field: "finishedAt", type: "datetime" },
-    { title: "Namespace", field: "namespace", type: "string" },
+    { title: "종료 시간", field: "finishedAt", type: "datetime" },
+    { title: "네임스페이스", field: "namespace", type: "string" },
   ];
 
   const { value, loading, error } = useAsync(
@@ -86,14 +86,14 @@ export const OverviewTable = () => {
     let state = {};
     switch (val.status?.phase) {
       case "Running":
-        state = <StatusRunning>Running</StatusRunning>;
+        state = <StatusRunning>실행 중</StatusRunning>;
         break;
       case "Succeeded":
-        state = <StatusOK>Succeeded</StatusOK>;
+        state = <StatusOK>성공</StatusOK>;
         break;
       case "Failed":
       case "Error":
-        state = <StatusError>Failed</StatusError>;
+        state = <StatusError>실패</StatusError>;
         break;
       default:
         state = <StatusPending>'${val.status?.phase}'</StatusPending>;
