@@ -5,7 +5,8 @@ import ExtensionIcon from '@material-ui/icons/Extension';
 import MapIcon from '@material-ui/icons/MyLocation';
 import LibraryBooks from '@material-ui/icons/LibraryBooks';
 import CreateComponentIcon from '@material-ui/icons/AddCircleOutline';
-import {LogoFull, LogoIcon} from '@internal/plugin-cnoe-ui';
+import LogoFull from './LogoFull';
+import LogoIcon from './LogoIcon';
 import {
   Settings as SidebarSettings,
   UserSettingsSignInAvatar,
@@ -47,7 +48,7 @@ const SidebarLogo = () => {
 
   return (
     <div className={classes.root}>
-      <Link to="/" underline="none" className={classes.link} aria-label="Home">
+      <Link to="/" underline="none" className={classes.link} aria-label="홈">
         {isOpen ? <LogoFull /> : <LogoIcon />}
       </Link>
     </div>
@@ -58,26 +59,26 @@ export const Root = ({ children }: PropsWithChildren<{}>) => (
   <SidebarPage>
     <Sidebar>
       <SidebarLogo />
-      <SidebarGroup label="Search" icon={<SearchIcon />} to="/search">
+      <SidebarGroup label="검색" icon={<SearchIcon />} to="/search">
         <SidebarSearchModal />
       </SidebarGroup>
       <SidebarDivider />
-      <SidebarGroup label="Menu" icon={<MenuIcon />}>
+      <SidebarGroup label="메뉴" icon={<MenuIcon />}>
         {/* Global nav, not org-specific */}
-        <SidebarItem icon={HomeIcon} to="catalog" text="Home" />
-        <SidebarItem icon={ExtensionIcon} to="api-docs" text="APIs" />
-        <SidebarItem icon={LibraryBooks} to="docs" text="Docs" />
-        <SidebarItem icon={CreateComponentIcon} to="create" text="Create..." />
+        <SidebarItem icon={HomeIcon} to="catalog" text="홈" />
+        <SidebarItem icon={ExtensionIcon} to="api-docs" text="API 문서" />
+        <SidebarItem icon={LibraryBooks} to="docs" text="문서" />
+        <SidebarItem icon={CreateComponentIcon} to="create" text="생성" />
         {/* End global nav */}
         <SidebarDivider />
         <SidebarScrollWrapper>
-          <SidebarItem icon={MapIcon} to="tech-radar" text="Tech Radar" />
+          <SidebarItem icon={MapIcon} to="tech-radar" text="기술 레이더" />
         </SidebarScrollWrapper>
       </SidebarGroup>
       <SidebarSpace />
       <SidebarDivider />
       <SidebarGroup
-        label="Settings"
+        label="설정"
         icon={<UserSettingsSignInAvatar />}
         to="/settings"
       >

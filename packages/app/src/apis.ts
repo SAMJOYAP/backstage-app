@@ -35,7 +35,7 @@ export const apis: AnyApiFactory[] = [
         oauthRequestApi,
         provider: {
           id: 'keycloak-oidc',
-          title: 'Keycloak OIDC',
+          title: '키클록 OIDC 로그인',
           icon: () => null,
         },
         environment: configApi.getOptionalString('auth.environment'),
