@@ -1,0 +1,129 @@
+name: Build And Deploy Backstage Image (ECR)
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+env:
+  AWS_REGION: ap-northeast-2
+  ECR_REPOSITORY: backstage-app
+  GITOPS_REPO: SAMJOYAP/reference-implementation-aws
+  GITOPS_FILE: packages/backstage/values-kr.yaml
+
+jobs:
+  build-push-and-update-gitops:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve release version from Git tag
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --tags --force
+
+          BASE_TAG="$(git describe --tags --abbrev=0 --match 'v[0-9]*.[0-9]*.[0-9]*' 2>/dev/null || true)"
+          if [[ -z "${BASE_TAG}" ]]; then
+            BASE_TAG="$(git describe --tags --abbrev=0 --match '[0-9]*.[0-9]*.[0-9]*' 2>/dev/null || true)"
+          fi
+
+          if [[ -z "${BASE_TAG}" ]]; then
+            echo "No semver Git tag found. Create a tag like v1.0.0 first."
+            exit 1
+          fi
+
+          BASE_VERSION="${BASE_TAG#v}"
+          EXACT_TAG="$(git tag --points-at HEAD | grep -E '^(v)?[0-9]+\.[0-9]+\.[0-9]+$' | head -n1 || true)"
+          SHORT_SHA="${GITHUB_SHA::7}"
+
+          if [[ -n "${EXACT_TAG}" ]]; then
+            VERSION="${EXACT_TAG#v}"
+          else
+            VERSION="${BASE_VERSION}-${SHORT_SHA}"
+          fi
+
+          echo "tag=${BASE_TAG}" >> "$GITHUB_OUTPUT"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "Resolved VERSION=${VERSION} from BASE_TAG=${BASE_TAG}"
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set image metadata
+        id: image
+        shell: bash
+        run: |
+          set -euo pipefail
+          REGISTRY="${{ steps.login-ecr.outputs.registry }}"
+          IMAGE="${REGISTRY}/${{ env.ECR_REPOSITORY }}:${{ steps.version.outputs.version }}"
+          echo "registry=${REGISTRY}" >> "$GITHUB_OUTPUT"
+          echo "image=${IMAGE}" >> "$GITHUB_OUTPUT"
+          echo "Using image: ${IMAGE}"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push (linux/amd64)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          platforms: linux/amd64
+          tags: ${{ steps.image.outputs.image }}
+
+      - name: Update GitOps values file
+        env:
+          GH_TOKEN: ${{ secrets.REFERENCE_REPO_PAT }}
+          VERSION: ${{ steps.version.outputs.version }}
+          ECR_REGISTRY: ${{ steps.image.outputs.registry }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          WORKDIR="$(mktemp -d)"
+          cd "${WORKDIR}"
+
+          git clone "https://x-access-token:${GH_TOKEN}@github.com/${{ env.GITOPS_REPO }}.git"
+          cd "$(basename "${{ env.GITOPS_REPO }}")"
+
+          if [[ ! -f "${{ env.GITOPS_FILE }}" ]]; then
+            echo "GitOps file not found: ${{ env.GITOPS_FILE }}"
+            exit 1
+          fi
+
+          sed -i -E "s|^([[:space:]]*registry:).*|\\1 ${ECR_REGISTRY}|" "${{ env.GITOPS_FILE }}"
+          sed -i -E "s|^([[:space:]]*repository:).*|\\1 ${ECR_REPOSITORY}|" "${{ env.GITOPS_FILE }}"
+          sed -i -E "s|^([[:space:]]*tag:).*|\\1 ${VERSION}|" "${{ env.GITOPS_FILE }}"
+
+          if git diff --quiet -- "${{ env.GITOPS_FILE }}"; then
+            echo "No GitOps change needed."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add "${{ env.GITOPS_FILE }}"
+          git commit -m "chore(backstage-kr): deploy backstage-app:${VERSION}"
+          git push origin main
+
+      - name: Summary
+        run: |
+          echo "Deployed image tag: ${{ steps.version.outputs.version }}"
+          echo "Image: ${{ steps.image.outputs.image }}"
