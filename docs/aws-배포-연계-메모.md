@@ -41,6 +41,36 @@
 4. Argo CD 동기화 확인
 5. `backstage-kr`에서 검증 완료 후 운영 전환 판단
 
+## CI/CD 자동화 (main push 기준)
+
+워크플로우:
+
+- `.github/workflows/build-and-deploy-ecr.yaml`
+
+동작:
+
+1. `main` 브랜치 push 시 실행
+2. Git tag(semver) 기준으로 이미지 버전 결정
+   - HEAD가 `v1.2.3` 태그면: `1.2.3`
+   - HEAD가 태그가 아니면: `기준태그-짧은SHA` (예: `1.2.3-a1b2c3d`)
+3. `linux/amd64` 이미지 빌드 후 ECR push
+4. `reference-implementation-aws/packages/backstage/values-kr.yaml` 자동 수정
+   - `registry`, `repository`, `tag`
+5. GitOps 레포(`reference-implementation-aws`) `main`에 자동 커밋/푸시
+6. Argo CD가 해당 변경을 감지해 `backstage-kr` 최신화
+
+### GitHub Secrets (backstage-app 레포)
+
+- `AWS_ACCESS_KEY_ID`
+- `AWS_SECRET_ACCESS_KEY`
+- `REFERENCE_REPO_PAT`
+  - `reference-implementation-aws`에 push 가능한 PAT
+  - 최소 `repo` 권한 필요
+
+참고:
+- ECR 리전/레포, GitOps 대상 파일은 워크플로우 상단 `env`로 관리한다.
+- 버전 기준 태그가 없으면 워크플로우는 실패한다(의도된 동작).
+
 ## 검증 체크리스트
 
 - UI 한글화/로고 반영 여부
