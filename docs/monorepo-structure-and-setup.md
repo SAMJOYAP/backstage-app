@@ -67,9 +67,30 @@
 
 ## 5.1 사전 요구사항
 
-- Node.js: `18` 또는 `20`
-- Yarn: `1.22.x` (workspace 사용)
+- Node.js: `v20.18.1` (현재 개발 기준)
+- Python: `3.11.11` (`python3`, node-gyp 빌드용)
+- Yarn: `1.22.19` (workspace 사용)
 - (권장) idpbuilder 기반 로컬 클러스터
+
+참고:
+- 프로젝트 `engines.node`는 `18 || 20`
+- 따라서 운영/CI에서는 Node 18 또는 20 계열 사용 가능하지만, 로컬 기준 고정 버전은 위 3개 값 권장
+
+권장 확인 명령:
+
+```bash
+node -v
+python3 --version
+yarn -v
+```
+
+현재 터미널 세션에서만 버전 고정(예: nvm 사용):
+
+```bash
+nvm use 20
+export PYTHON="$(which python3)"
+yarn config set python "$PYTHON"
+```
 
 ## 5.2 기본 실행
 
@@ -158,4 +179,3 @@ yarn dev
    - `3000`, `7007` 사용 가능 여부 확인
 4. 인증 연동 실패  
    - `app-config.yaml`의 provider 설정/환경변수 점검
-
