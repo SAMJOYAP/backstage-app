@@ -3,7 +3,7 @@
 ## 목적
 
 이 저장소(`backstage-app`)에서 만든 커스텀 Backstage 이미지를
-`reference-implementation-aws`의 신규 네임스페이스(`backstage-kr`) 배포에 연결한다.
+`SAMJOYAP/gitops`를 통해 `backstage-kr` 배포에 연결한다.
 
 ## 현재 반영된 핵심 사항
 
@@ -22,22 +22,22 @@
 이 저장소에서 작업한 로고/한글화 결과는 이미지 빌드 결과물에 포함되며,
 쿠버네티스에서는 해당 이미지를 pull하여 동일 UI를 제공한다.
 
-## 배포 연결 지점 (다른 레포에서 참조)
+## 배포 연결 지점 (GitOps)
 
-`reference-implementation-aws`의 아래 파일에서 이 이미지를 참조한다.
+`SAMJOYAP/gitops`의 아래 파일에서 이 이미지를 참조한다.
 
-- `packages/backstage/values-kr.yaml`
+- `apps/backstage-kr/values-kr.yaml`
   - `backstage.image.registry`
   - `backstage.image.repository`
   - `backstage.image.tag`
 
-즉, 실제 배포 버전 전환은 `reference-implementation-aws`에서 image tag 교체로 수행한다.
+즉, 실제 배포 버전 전환은 `gitops` 저장소의 `values-kr.yaml` tag 교체로 수행한다.
 
 ## 권장 운영 절차
 
 1. `backstage-app`에서 변경 개발/검증
 2. 이미지 빌드 및 레지스트리 push
-3. `reference-implementation-aws`의 `values-kr.yaml` tag 업데이트
+3. `gitops/apps/backstage-kr/values-kr.yaml` tag 업데이트(PR 기반)
 4. Argo CD 동기화 확인
 5. `backstage-kr`에서 검증 완료 후 운영 전환 판단
 
@@ -54,18 +54,19 @@
    - HEAD가 `v1.2.3` 태그면: `1.2.3`
    - HEAD가 태그가 아니면: `기준태그-짧은SHA` (예: `1.2.3-a1b2c3d`)
 3. `linux/amd64` 이미지 빌드 후 ECR push
-4. `reference-implementation-aws/packages/backstage/values-kr.yaml` 자동 수정
+4. `gitops/apps/backstage-kr/values-kr.yaml` 자동 수정
    - `registry`, `repository`, `tag`
-5. GitOps 레포(`reference-implementation-aws`) `main`에 자동 커밋/푸시
-6. Argo CD가 해당 변경을 감지해 `backstage-kr` 최신화
+5. GitOps 레포(`SAMJOYAP/gitops`)에 PR 생성
+6. PR auto-merge 설정
+7. Argo CD가 해당 변경을 감지해 `backstage-kr` 최신화
 
 ### GitHub Secrets (backstage-app 레포)
 
 - `AWS_ACCESS_KEY_ID`
 - `AWS_SECRET_ACCESS_KEY`
-- `REFERENCE_REPO_PAT`
-  - `reference-implementation-aws`에 push 가능한 PAT
-  - 최소 `repo` 권한 필요
+- `GITOPS_REPO_TOKEN`
+  - `SAMJOYAP/gitops`에 PR 생성/auto-merge 가능한 토큰
+  - 최소 `Contents:RW`, `Pull requests:RW` 권한 필요
 
 참고:
 - ECR 리전/레포, GitOps 대상 파일은 워크플로우 상단 `env`로 관리한다.
