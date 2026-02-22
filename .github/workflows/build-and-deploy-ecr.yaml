@@ -9,8 +9,8 @@ on:
 env:
   AWS_REGION: ap-northeast-2
   ECR_REPOSITORY: backstage-app
-  GITOPS_REPO: SAMJOYAP/reference-implementation-aws
-  GITOPS_FILE: packages/backstage/values-kr.yaml
+  GITOPS_REPO: SAMJOYAP/gitops
+  APP_NAME: backstage-kr
 
 jobs:
   build-push-and-update-gitops:
@@ -18,6 +18,7 @@ jobs:
     permissions:
       contents: read
       id-token: write
+      pull-requests: read
 
     steps:
       - name: Checkout
@@ -89,39 +90,170 @@ jobs:
           platforms: linux/amd64
           tags: ${{ steps.image.outputs.image }}
 
-      - name: Update GitOps values file
-        env:
-          GH_TOKEN: ${{ secrets.REFERENCE_REPO_PAT }}
-          VERSION: ${{ steps.version.outputs.version }}
-          ECR_REGISTRY: ${{ steps.image.outputs.registry }}
+      - name: Checkout GitOps repo
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.GITOPS_REPO }}
+          token: ${{ secrets.GITOPS_REPO_TOKEN }}
+          ref: main
+          path: gitops-repo
+
+      - name: Bootstrap backstage-kr manifests
         shell: bash
         run: |
           set -euo pipefail
-          WORKDIR="$(mktemp -d)"
-          cd "${WORKDIR}"
+          APP_DIR="gitops-repo/apps/${APP_NAME}"
+          MANIFEST_DIR="${APP_DIR}/manifests"
+          mkdir -p "${MANIFEST_DIR}"
 
-          git clone "https://x-access-token:${GH_TOKEN}@github.com/${{ env.GITOPS_REPO }}.git"
-          cd "$(basename "${{ env.GITOPS_REPO }}")"
-
-          if [[ ! -f "${{ env.GITOPS_FILE }}" ]]; then
-            echo "GitOps file not found: ${{ env.GITOPS_FILE }}"
-            exit 1
+          if [[ ! -f "${APP_DIR}/kustomization.yaml" ]]; then
+            cat > "${APP_DIR}/kustomization.yaml" <<YAML
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - manifests/namespace.yaml
+  - manifests/service.yaml
+  - manifests/deployment.yaml
+  - manifests/ingress.yaml
+YAML
           fi
 
-          sed -i -E "s|^([[:space:]]*registry:).*|\\1 ${ECR_REGISTRY}|" "${{ env.GITOPS_FILE }}"
-          sed -i -E "s|^([[:space:]]*repository:).*|\\1 ${ECR_REPOSITORY}|" "${{ env.GITOPS_FILE }}"
-          sed -i -E "s|^([[:space:]]*tag:).*|\\1 ${VERSION}|" "${{ env.GITOPS_FILE }}"
+          if [[ ! -f "${MANIFEST_DIR}/namespace.yaml" ]]; then
+            cat > "${MANIFEST_DIR}/namespace.yaml" <<YAML
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ${APP_NAME}
+  labels:
+    app.kubernetes.io/name: ${APP_NAME}
+YAML
+          fi
 
-          if git diff --quiet -- "${{ env.GITOPS_FILE }}"; then
+          if [[ ! -f "${MANIFEST_DIR}/service.yaml" ]]; then
+            cat > "${MANIFEST_DIR}/service.yaml" <<YAML
+apiVersion: v1
+kind: Service
+metadata:
+  name: ${APP_NAME}
+  namespace: ${APP_NAME}
+  labels:
+    app.kubernetes.io/name: ${APP_NAME}
+spec:
+  selector:
+    app.kubernetes.io/name: ${APP_NAME}
+  ports:
+    - name: http
+      port: 80
+      targetPort: 7007
+      protocol: TCP
+  type: ClusterIP
+YAML
+          fi
+
+          if [[ ! -f "${MANIFEST_DIR}/deployment.yaml" ]]; then
+            cat > "${MANIFEST_DIR}/deployment.yaml" <<YAML
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ${APP_NAME}
+  namespace: ${APP_NAME}
+  labels:
+    app.kubernetes.io/name: ${APP_NAME}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: ${APP_NAME}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: ${APP_NAME}
+    spec:
+      containers:
+        - name: backstage
+          image: nginx:1.27-alpine
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 7007
+YAML
+          fi
+
+          if [[ ! -f "${MANIFEST_DIR}/ingress.yaml" ]]; then
+            cat > "${MANIFEST_DIR}/ingress.yaml" <<YAML
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ${APP_NAME}
+  namespace: ${APP_NAME}
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: backstage-kr.sesac.already11.cloud
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: ${APP_NAME}
+                port:
+                  number: 80
+  tls:
+    - hosts:
+        - backstage-kr.sesac.already11.cloud
+      secretName: backstage-kr-tls
+YAML
+          fi
+
+      - name: Update GitOps deployment image
+        id: gitops_changes
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          IMAGE: ${{ steps.image.outputs.image }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          DEPLOYMENT_FILE="gitops-repo/apps/${APP_NAME}/manifests/deployment.yaml"
+          sed -i -E "s|(^[[:space:]]*image:[[:space:]]*).*$|\\1 ${IMAGE}|" "${DEPLOYMENT_FILE}"
+
+          if git -C gitops-repo diff --quiet -- "apps/${APP_NAME}"; then
             echo "No GitOps change needed."
+            echo "changed=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
+          echo "changed=true" >> "$GITHUB_OUTPUT"
 
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add "${{ env.GITOPS_FILE }}"
-          git commit -m "chore(backstage-kr): deploy backstage-app:${VERSION}"
-          git push origin main
+      - name: Create pull request in GitOps repo
+        id: create_pr
+        if: steps.gitops_changes.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITOPS_REPO_TOKEN }}
+          path: gitops-repo
+          commit-message: "chore(backstage-kr): deploy backstage-app:${{ steps.version.outputs.version }} [skip ci]"
+          title: "chore(backstage-kr): deploy backstage-app:${{ steps.version.outputs.version }}"
+          body: |
+            Automated GitOps update for backstage-kr image.
+          branch: chore/cd-update-backstage-kr-image
+          base: main
+          delete-branch: true
+          add-paths: |
+            apps/backstage-kr/kustomization.yaml
+            apps/backstage-kr/manifests/namespace.yaml
+            apps/backstage-kr/manifests/service.yaml
+            apps/backstage-kr/manifests/deployment.yaml
+            apps/backstage-kr/manifests/ingress.yaml
+
+      - name: Enable auto-merge for GitOps PR
+        if: steps.gitops_changes.outputs.changed == 'true' && steps.create_pr.outputs.pull-request-number != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITOPS_REPO_TOKEN }}
+          PR_NUMBER: ${{ steps.create_pr.outputs.pull-request-number }}
+        shell: bash
+        run: |
+          gh pr merge "$PR_NUMBER" --auto --squash --repo "${GITOPS_REPO}"
 
       - name: Summary
         run: |
