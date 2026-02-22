@@ -8,6 +8,83 @@ import { ArgoService } from '@roadiehq/backstage-plugin-argo-cd-backend';
 import { createRouter } from '@roadiehq/backstage-plugin-argo-cd-backend';
 import { PluginEnvironment } from '../types';
 
+async function createArgoApplicationWithoutPathValidation(options: {
+  baseUrl: string;
+  argoToken: string;
+  appName: string;
+  projectName: string;
+  namespace: string;
+  sourceRepo: string;
+  sourcePath: string;
+  labelValue: string;
+}) {
+  const {
+    baseUrl,
+    argoToken,
+    appName,
+    projectName,
+    namespace,
+    sourceRepo,
+    sourcePath,
+    labelValue,
+  } = options;
+
+  const payload = {
+    metadata: {
+      name: appName,
+      labels: { 'backstage-name': labelValue },
+      finalizers: ['resources-finalizer.argocd.argoproj.io'],
+    },
+    spec: {
+      destination: {
+        namespace,
+        server: 'https://kubernetes.default.svc',
+      },
+      project: projectName,
+      revisionHistoryLimit: 10,
+      source: {
+        path: sourcePath,
+        repoURL: sourceRepo,
+      },
+      syncPolicy: {
+        automated: {
+          allowEmpty: true,
+          prune: true,
+          selfHeal: true,
+        },
+        retry: {
+          backoff: {
+            duration: '5s',
+            factor: 2,
+            maxDuration: '5m',
+          },
+          limit: 10,
+        },
+        syncOptions: ['CreateNamespace=false', 'FailOnSharedResource=true'],
+      },
+    },
+  };
+
+  const params = new URLSearchParams({
+    validate: 'false',
+    upsert: 'true',
+  });
+
+  const resp = await fetch(`${baseUrl}/api/v1/applications?${params}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${argoToken}`,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!resp.ok) {
+    const body = await resp.text();
+    throw new Error(`Error creating argo app with validate=false: ${body}`);
+  }
+}
+
 export default async function createPlugin({
   logger,
   config,
@@ -122,16 +199,44 @@ export function createArgoCDApp(options: { config: Config; logger: Logger }) {
         matchedArgoInstance.token ||
         (await argoSvc.getArgoToken(matchedArgoInstance));
 
-      await argoSvc.createArgoApplication({
-        baseUrl: matchedArgoInstance.url,
-        argoToken: token,
-        appName: appName,
-        projectName: projectName ? projectName : appName,
-        namespace: appNamespace,
-        sourceRepo: repoUrl,
-        sourcePath: path,
-        labelValue: labelValue ? labelValue : appName,
-      });
+      const resolvedProjectName = projectName ? projectName : appName;
+      const resolvedLabelValue = labelValue ? labelValue : appName;
+
+      try {
+        await argoSvc.createArgoApplication({
+          baseUrl: matchedArgoInstance.url,
+          argoToken: token,
+          appName: appName,
+          projectName: resolvedProjectName,
+          namespace: appNamespace,
+          sourceRepo: repoUrl,
+          sourcePath: path,
+          labelValue: resolvedLabelValue,
+        });
+      } catch (e) {
+        const errorText = e instanceof Error ? e.message : String(e);
+        // GitOps bootstrap 전에 앱을 등록하면 path 검증에서 실패할 수 있어 fallback 처리
+        if (
+          errorText.includes('app path does not exist') ||
+          errorText.includes('Unable to generate manifests in')
+        ) {
+          ctx.logger.warn(
+            `Argo app path validation failed for "${appName}". Retrying with validate=false/upsert=true.`,
+          );
+          await createArgoApplicationWithoutPathValidation({
+            baseUrl: matchedArgoInstance.url,
+            argoToken: token,
+            appName,
+            projectName: resolvedProjectName,
+            namespace: appNamespace,
+            sourceRepo: repoUrl,
+            sourcePath: path,
+            labelValue: resolvedLabelValue,
+          });
+        } else {
+          throw e;
+        }
+      }
     },
   });
 }
