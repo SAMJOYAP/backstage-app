@@ -1,4 +1,4 @@
-# CNOE Backstage 
+# CNOE1 Backstage 
 
 This repository contains code for the [Backstage](https://backstage.io) images used by the CNOE stacks.
 
