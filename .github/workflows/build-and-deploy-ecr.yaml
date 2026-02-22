@@ -108,57 +108,57 @@ jobs:
           mkdir -p "${MANIFEST_DIR}"
 
           if [[ ! -f "${APP_DIR}/values.yaml" ]]; then
-            cat > "${APP_DIR}/values.yaml" <<YAML
-# Ref: https://github.com/backstage/charts/tree/main/charts/backstage
-ingress:
-  enabled: true
-  className: "nginx"
-  extraHosts: []
-  path: "/"
-  tls:
-    enabled: true
-    secretName: "backstage-server-tls"
-backstage:
-  replicas: 1
-  image:
-    registry: ghcr.io
-    repository: cnoe-io/backstage-app
-    tag: latest
-    pullPolicy: IfNotPresent
-  command: ["node", "packages/backend"]
-postgresql:
-  enabled: true
-serviceAccount:
-  create: true
-YAML
+            {
+              echo "# Ref: https://github.com/backstage/charts/tree/main/charts/backstage"
+              echo "ingress:"
+              echo "  enabled: true"
+              echo "  className: \"nginx\""
+              echo "  extraHosts: []"
+              echo "  path: \"/\""
+              echo "  tls:"
+              echo "    enabled: true"
+              echo "    secretName: \"backstage-server-tls\""
+              echo "backstage:"
+              echo "  replicas: 1"
+              echo "  image:"
+              echo "    registry: ghcr.io"
+              echo "    repository: cnoe-io/backstage-app"
+              echo "    tag: latest"
+              echo "    pullPolicy: IfNotPresent"
+              echo "  command: [\"node\", \"packages/backend\"]"
+              echo "postgresql:"
+              echo "  enabled: true"
+              echo "serviceAccount:"
+              echo "  create: true"
+            } > "${APP_DIR}/values.yaml"
           fi
 
           if [[ ! -f "${APP_DIR}/values-kr.yaml" ]]; then
-            cat > "${APP_DIR}/values-kr.yaml" <<YAML
-ingress:
-  tls:
-    secretName: "backstage-kr-server-tls"
-backstage:
-  appConfig:
-    app:
-      title: ALREADY11 Backstage
-    organization:
-      name: ALREADY11
-  image:
-    registry: ${{ steps.image.outputs.registry }}
-    repository: ${ECR_REPOSITORY}
-    tag: ${{ steps.version.outputs.version }}
-YAML
+            {
+              echo "ingress:"
+              echo "  tls:"
+              echo "    secretName: \"backstage-kr-server-tls\""
+              echo "backstage:"
+              echo "  appConfig:"
+              echo "    app:"
+              echo "      title: ALREADY11 Backstage"
+              echo "    organization:"
+              echo "      name: ALREADY11"
+              echo "  image:"
+              echo "    registry: REPLACE_ECR_REGISTRY"
+              echo "    repository: REPLACE_ECR_REPOSITORY"
+              echo "    tag: REPLACE_ECR_TAG"
+            } > "${APP_DIR}/values-kr.yaml"
           fi
 
           if [[ ! -f "${APP_DIR}/kustomization.yaml" ]]; then
-            cat > "${APP_DIR}/kustomization.yaml" <<YAML
-apiVersion: kustomize.config.k8s.io/v1beta1
-kind: Kustomization
-resources:
-  - manifests/external-secrets.yaml
-  - manifests/k8s-config-secret.yaml
-YAML
+            {
+              echo "apiVersion: kustomize.config.k8s.io/v1beta1"
+              echo "kind: Kustomization"
+              echo "resources:"
+              echo "  - manifests/external-secrets.yaml"
+              echo "  - manifests/k8s-config-secret.yaml"
+            } > "${APP_DIR}/kustomization.yaml"
           fi
 
       - name: Update GitOps backstage image values
