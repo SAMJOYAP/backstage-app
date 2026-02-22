@@ -11,6 +11,7 @@ env:
   ECR_REPOSITORY: backstage-app
   GITOPS_REPO: SAMJOYAP/gitops
   APP_NAME: backstage-kr
+  GITOPS_VALUES_FILE: apps/backstage-kr/values-kr.yaml
 
 jobs:
   build-push-and-update-gitops:
@@ -98,7 +99,7 @@ jobs:
           ref: main
           path: gitops-repo
 
-      - name: Bootstrap backstage-kr manifests
+      - name: Bootstrap backstage-kr values and manifests
         shell: bash
         run: |
           set -euo pipefail
@@ -106,117 +107,72 @@ jobs:
           MANIFEST_DIR="${APP_DIR}/manifests"
           mkdir -p "${MANIFEST_DIR}"
 
+          if [[ ! -f "${APP_DIR}/values.yaml" ]]; then
+            cat > "${APP_DIR}/values.yaml" <<YAML
+# Ref: https://github.com/backstage/charts/tree/main/charts/backstage
+ingress:
+  enabled: true
+  className: "nginx"
+  extraHosts: []
+  path: "/"
+  tls:
+    enabled: true
+    secretName: "backstage-server-tls"
+backstage:
+  replicas: 1
+  image:
+    registry: ghcr.io
+    repository: cnoe-io/backstage-app
+    tag: latest
+    pullPolicy: IfNotPresent
+  command: ["node", "packages/backend"]
+postgresql:
+  enabled: true
+serviceAccount:
+  create: true
+YAML
+          fi
+
+          if [[ ! -f "${APP_DIR}/values-kr.yaml" ]]; then
+            cat > "${APP_DIR}/values-kr.yaml" <<YAML
+ingress:
+  tls:
+    secretName: "backstage-kr-server-tls"
+backstage:
+  appConfig:
+    app:
+      title: ALREADY11 Backstage
+    organization:
+      name: ALREADY11
+  image:
+    registry: ${{ steps.image.outputs.registry }}
+    repository: ${ECR_REPOSITORY}
+    tag: ${{ steps.version.outputs.version }}
+YAML
+          fi
+
           if [[ ! -f "${APP_DIR}/kustomization.yaml" ]]; then
             cat > "${APP_DIR}/kustomization.yaml" <<YAML
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-  - manifests/namespace.yaml
-  - manifests/service.yaml
-  - manifests/deployment.yaml
-  - manifests/ingress.yaml
+  - manifests/external-secrets.yaml
+  - manifests/k8s-config-secret.yaml
 YAML
           fi
 
-          if [[ ! -f "${MANIFEST_DIR}/namespace.yaml" ]]; then
-            cat > "${MANIFEST_DIR}/namespace.yaml" <<YAML
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: ${APP_NAME}
-  labels:
-    app.kubernetes.io/name: ${APP_NAME}
-YAML
-          fi
-
-          if [[ ! -f "${MANIFEST_DIR}/service.yaml" ]]; then
-            cat > "${MANIFEST_DIR}/service.yaml" <<YAML
-apiVersion: v1
-kind: Service
-metadata:
-  name: ${APP_NAME}
-  namespace: ${APP_NAME}
-  labels:
-    app.kubernetes.io/name: ${APP_NAME}
-spec:
-  selector:
-    app.kubernetes.io/name: ${APP_NAME}
-  ports:
-    - name: http
-      port: 80
-      targetPort: 7007
-      protocol: TCP
-  type: ClusterIP
-YAML
-          fi
-
-          if [[ ! -f "${MANIFEST_DIR}/deployment.yaml" ]]; then
-            cat > "${MANIFEST_DIR}/deployment.yaml" <<YAML
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: ${APP_NAME}
-  namespace: ${APP_NAME}
-  labels:
-    app.kubernetes.io/name: ${APP_NAME}
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app.kubernetes.io/name: ${APP_NAME}
-  template:
-    metadata:
-      labels:
-        app.kubernetes.io/name: ${APP_NAME}
-    spec:
-      containers:
-        - name: backstage
-          image: nginx:1.27-alpine
-          imagePullPolicy: IfNotPresent
-          ports:
-            - containerPort: 7007
-YAML
-          fi
-
-          if [[ ! -f "${MANIFEST_DIR}/ingress.yaml" ]]; then
-            cat > "${MANIFEST_DIR}/ingress.yaml" <<YAML
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: ${APP_NAME}
-  namespace: ${APP_NAME}
-  annotations:
-    cert-manager.io/cluster-issuer: letsencrypt-prod
-spec:
-  ingressClassName: nginx
-  rules:
-    - host: backstage-kr.sesac.already11.cloud
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: ${APP_NAME}
-                port:
-                  number: 80
-  tls:
-    - hosts:
-        - backstage-kr.sesac.already11.cloud
-      secretName: backstage-kr-tls
-YAML
-          fi
-
-      - name: Update GitOps deployment image
+      - name: Update GitOps backstage image values
         id: gitops_changes
         env:
           VERSION: ${{ steps.version.outputs.version }}
-          IMAGE: ${{ steps.image.outputs.image }}
+          ECR_REGISTRY: ${{ steps.image.outputs.registry }}
         shell: bash
         run: |
           set -euo pipefail
-          DEPLOYMENT_FILE="gitops-repo/apps/${APP_NAME}/manifests/deployment.yaml"
-          sed -i -E "s|(^[[:space:]]*image:[[:space:]]*).*$|\\1 ${IMAGE}|" "${DEPLOYMENT_FILE}"
+          VALUES_FILE="gitops-repo/${GITOPS_VALUES_FILE}"
+          sed -i -E "s|^([[:space:]]*registry:).*|\\1 ${ECR_REGISTRY}|" "${VALUES_FILE}"
+          sed -i -E "s|^([[:space:]]*repository:).*|\\1 ${ECR_REPOSITORY}|" "${VALUES_FILE}"
+          sed -i -E "s|^([[:space:]]*tag:).*|\\1 ${VERSION}|" "${VALUES_FILE}"
 
           if git -C gitops-repo diff --quiet -- "apps/${APP_NAME}"; then
             echo "No GitOps change needed."
@@ -240,11 +196,11 @@ YAML
           base: main
           delete-branch: true
           add-paths: |
+            apps/backstage-kr/values.yaml
+            apps/backstage-kr/values-kr.yaml
             apps/backstage-kr/kustomization.yaml
-            apps/backstage-kr/manifests/namespace.yaml
-            apps/backstage-kr/manifests/service.yaml
-            apps/backstage-kr/manifests/deployment.yaml
-            apps/backstage-kr/manifests/ingress.yaml
+            apps/backstage-kr/manifests/external-secrets.yaml
+            apps/backstage-kr/manifests/k8s-config-secret.yaml
 
       - name: Enable auto-merge for GitOps PR
         if: steps.gitops_changes.outputs.changed == 'true' && steps.create_pr.outputs.pull-request-number != ''
