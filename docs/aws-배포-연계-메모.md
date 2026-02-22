@@ -84,3 +84,28 @@
 `backstage-kr` 배포/Argo CD/Ingress 이슈의 상세 트러블슈팅은 운영 레포에 기록:
 
 - `reference-implementation-aws/docs/Backstage_kr_트러블슈팅_기록.md`
+
+---
+
+## 최신 반영 사항 (2026-02-22)
+
+### 1) GitOps `apps/backstage-kr` 부트스트랩 보강
+
+- 파일: `.github/workflows/build-and-deploy-ecr.yaml`
+- 개선점:
+  - `apps/backstage-kr` 디렉터리 자동 생성
+  - `manifests/` 하위 필수 파일 자동 생성
+    - `external-secrets.yaml`
+    - `k8s-config-secret.yaml`
+  - `values-kr.yaml` 파일 존재 여부 사전 체크(없으면 명확한 에러로 실패)
+
+### 2) 워크플로 YAML 문법 안정화
+
+- Bootstrap 단계 heredoc/들여쓰기 문제를 정리하여
+  GitHub Actions 파싱 오류가 발생하지 않도록 수정.
+
+### 3) 운영 모델 재확인
+
+- `backstage-app`은 이미지 빌드/배포 트리거 역할
+- 실제 배포 선언은 `SAMJOYAP/gitops/apps/backstage-kr`에서 관리
+- Argo CD는 GitOps repo 변경을 감지해 반영
