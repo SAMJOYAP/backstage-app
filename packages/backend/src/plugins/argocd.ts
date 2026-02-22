@@ -1,5 +1,6 @@
 import { Config } from '@backstage/config';
 import { createTemplateAction } from '@backstage/plugin-scaffolder-node';
+import { executeShellCommand } from '@backstage/plugin-scaffolder-node';
 import { examples } from './gitea-actions';
 import { Logger } from 'winston';
 
@@ -7,6 +8,17 @@ import { ArgoService } from '@roadiehq/backstage-plugin-argo-cd-backend';
 
 import { createRouter } from '@roadiehq/backstage-plugin-argo-cd-backend';
 import { PluginEnvironment } from '../types';
+import { ScmIntegrations } from '@backstage/integration';
+import { Writable } from 'stream';
+
+class CaptureLogStream extends Writable {
+  data = '';
+
+  _write(chunk: any, _: any, callback: any) {
+    this.data += chunk.toString();
+    callback();
+  }
+}
 
 async function createArgoApplicationWithoutPathValidation(options: {
   baseUrl: string;
@@ -85,6 +97,100 @@ async function createArgoApplicationWithoutPathValidation(options: {
   }
 }
 
+async function deleteArgoApplication(options: {
+  baseUrl: string;
+  argoToken: string;
+  appName: string;
+  logger: Logger;
+}) {
+  const { baseUrl, argoToken, appName, logger } = options;
+  const deleteUrl = `${baseUrl}/api/v1/applications/${encodeURIComponent(
+    appName,
+  )}?cascade=true&propagationPolicy=foreground`;
+  const resp = await fetch(deleteUrl, {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${argoToken}`,
+    },
+  });
+  if (resp.status === 404) {
+    logger.info(`Argo app "${appName}" not found during cleanup`);
+    return;
+  }
+  if (!resp.ok) {
+    const body = await resp.text();
+    throw new Error(`Argo app cleanup failed: ${body}`);
+  }
+}
+
+async function deleteGithubRepo(options: {
+  config: Config;
+  owner: string;
+  repo: string;
+  logger: Logger;
+}) {
+  const { config, owner, repo, logger } = options;
+  const token =
+    ScmIntegrations.fromConfig(config).byHost('github.com')?.config.token ?? '';
+  if (!token) {
+    logger.warn(
+      'Skipping GitHub cleanup: no github integration token configured in app-config',
+    );
+    return;
+  }
+
+  const resp = await fetch(`https://api.github.com/repos/${owner}/${repo}`, {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: 'application/vnd.github+json',
+      'X-GitHub-Api-Version': '2022-11-28',
+    },
+  });
+
+  if (resp.status === 404) {
+    logger.info(`GitHub repo "${owner}/${repo}" not found during cleanup`);
+    return;
+  }
+  if (!resp.ok) {
+    const body = await resp.text();
+    throw new Error(`GitHub cleanup failed: ${body}`);
+  }
+}
+
+async function deleteEcrRepo(options: {
+  repository: string;
+  region?: string;
+  logger: Logger;
+}) {
+  const { repository, region, logger } = options;
+  const logStream = new CaptureLogStream();
+  const regionArg = region ? ` --region ${region}` : '';
+
+  const command = [
+    'if ! command -v aws >/dev/null 2>&1; then',
+    '  echo "Skipping ECR cleanup: aws cli not installed";',
+    '  exit 0;',
+    'fi',
+    `aws ecr delete-repository --repository-name "${repository}" --force${regionArg}`,
+  ].join('\n');
+
+  try {
+    await executeShellCommand({
+      command: 'bash',
+      args: ['-lc', command],
+      logStream,
+    });
+  } catch (error) {
+    logger.warn(
+      `ECR cleanup best-effort failed for "${repository}": ${String(error)}`,
+    );
+    if (logStream.data) {
+      logger.warn(logStream.data);
+    }
+  }
+}
+
 export default async function createPlugin({
   logger,
   config,
@@ -103,6 +209,11 @@ export function createArgoCDApp(options: { config: Config; logger: Logger }) {
     path: string;
     labelValue?: string;
     appNamespace: string;
+    cleanupOnFailure?: boolean;
+    cleanupGithubOwner?: string;
+    cleanupGithubRepo?: string;
+    cleanupEcrRepository?: string;
+    cleanupEcrRegion?: string;
   }>({
     id: 'cnoe:create-argocd-app',
     description: 'creates argocd app',
@@ -147,6 +258,26 @@ export function createArgoCDApp(options: { config: Config; logger: Logger }) {
             title: 'for argocd plugin to locate this app',
             type: 'string',
           },
+          cleanupOnFailure: {
+            title: 'cleanup created resources when this step fails',
+            type: 'boolean',
+          },
+          cleanupGithubOwner: {
+            title: 'github owner to delete on cleanup',
+            type: 'string',
+          },
+          cleanupGithubRepo: {
+            title: 'github repository to delete on cleanup',
+            type: 'string',
+          },
+          cleanupEcrRepository: {
+            title: 'ecr repository name to delete on cleanup',
+            type: 'string',
+          },
+          cleanupEcrRegion: {
+            title: 'aws region for ecr cleanup',
+            type: 'string',
+          },
         },
       },
       output: {},
@@ -160,6 +291,11 @@ export function createArgoCDApp(options: { config: Config; logger: Logger }) {
         path,
         labelValue,
         appNamespace,
+        cleanupOnFailure,
+        cleanupGithubOwner,
+        cleanupGithubRepo,
+        cleanupEcrRepository,
+        cleanupEcrRegion,
       } = ctx.input;
 
       const argoUserName =
@@ -201,6 +337,7 @@ export function createArgoCDApp(options: { config: Config; logger: Logger }) {
 
       const resolvedProjectName = projectName ? projectName : appName;
       const resolvedLabelValue = labelValue ? labelValue : appName;
+      const shouldCleanup = cleanupOnFailure ?? true;
 
       try {
         await argoSvc.createArgoApplication({
@@ -223,17 +360,89 @@ export function createArgoCDApp(options: { config: Config; logger: Logger }) {
           ctx.logger.warn(
             `Argo app path validation failed for "${appName}". Retrying with validate=false/upsert=true.`,
           );
-          await createArgoApplicationWithoutPathValidation({
-            baseUrl: matchedArgoInstance.url,
-            argoToken: token,
-            appName,
-            projectName: resolvedProjectName,
-            namespace: appNamespace,
-            sourceRepo: repoUrl,
-            sourcePath: path,
-            labelValue: resolvedLabelValue,
-          });
+          try {
+            await createArgoApplicationWithoutPathValidation({
+              baseUrl: matchedArgoInstance.url,
+              argoToken: token,
+              appName,
+              projectName: resolvedProjectName,
+              namespace: appNamespace,
+              sourceRepo: repoUrl,
+              sourcePath: path,
+              labelValue: resolvedLabelValue,
+            });
+          } catch (fallbackError) {
+            if (shouldCleanup) {
+              ctx.logger.warn(
+                `Fallback creation failed. Starting cleanup for app "${appName}"`,
+              );
+              try {
+                await deleteArgoApplication({
+                  baseUrl: matchedArgoInstance.url,
+                  argoToken: token,
+                  appName,
+                  logger,
+                });
+              } catch (cleanupError) {
+                ctx.logger.warn(String(cleanupError));
+              }
+              if (cleanupGithubOwner && cleanupGithubRepo) {
+                try {
+                  await deleteGithubRepo({
+                    config,
+                    owner: cleanupGithubOwner,
+                    repo: cleanupGithubRepo,
+                    logger,
+                  });
+                } catch (cleanupError) {
+                  ctx.logger.warn(String(cleanupError));
+                }
+              }
+              if (cleanupEcrRepository) {
+                await deleteEcrRepo({
+                  repository: cleanupEcrRepository,
+                  region: cleanupEcrRegion,
+                  logger,
+                });
+              }
+            }
+            throw fallbackError;
+          }
         } else {
+          if (shouldCleanup) {
+            ctx.logger.warn(
+              `create-argocd-app failed. Starting cleanup for app "${appName}"`,
+            );
+            try {
+              await deleteArgoApplication({
+                baseUrl: matchedArgoInstance.url,
+                argoToken: token,
+                appName,
+                logger,
+              });
+            } catch (cleanupError) {
+              ctx.logger.warn(String(cleanupError));
+            }
+            if (cleanupGithubOwner && cleanupGithubRepo) {
+              try {
+                await deleteGithubRepo({
+                  config,
+                  owner: cleanupGithubOwner,
+                  repo: cleanupGithubRepo,
+                  logger,
+                });
+              } catch (cleanupError) {
+                ctx.logger.warn(String(cleanupError));
+              }
+            }
+            if (cleanupEcrRepository) {
+              await deleteEcrRepo({
+                repository: cleanupEcrRepository,
+                region: cleanupEcrRegion,
+                logger,
+              });
+            }
+          }
           throw e;
         }
       }

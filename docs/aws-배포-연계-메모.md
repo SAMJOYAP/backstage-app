@@ -109,3 +109,14 @@
 - `backstage-app`은 이미지 빌드/배포 트리거 역할
 - 실제 배포 선언은 `SAMJOYAP/gitops/apps/backstage-kr`에서 관리
 - Argo CD는 GitOps repo 변경을 감지해 반영
+
+### 4) Scaffolder 실패 보상 삭제(rollback) 액션 추가
+
+- 파일: `packages/backend/src/plugins/argocd.ts`
+- 액션: `cnoe:create-argocd-app`
+- 동작:
+  - Argo app 생성 단계 실패 시 cleanup 수행
+  - cleanup 대상:
+    1. Argo CD Application 삭제
+    2. GitHub Repository 삭제(토큰 설정 시)
+    3. ECR Repository 삭제(best-effort, AWS CLI/권한 필요)
