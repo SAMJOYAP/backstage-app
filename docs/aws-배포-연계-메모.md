@@ -262,6 +262,41 @@
   - `hostPrefix`: 미입력 시 프로젝트 이름 자동 사용
   - `targetNamespace`: 미입력 시 프로젝트 이름 자동 사용
 
+---
+
+## 최신 상태 (2026-02-23 심야) - Argo CD RBAC 기반 엄격 검증 복구
+
+### 1) 안전성 우선으로 preflight 동작 복구
+
+- 파일: `packages/backend/src/plugins/argocd.ts`
+- 변경:
+  - Argo 사전검증 단계에서 조회/등록 권한이 부족하면 즉시 실패하도록 복구
+  - 권한 부족 시 어떤 권한이 필요한지 구체 메시지 반환
+
+핵심 의도:
+- 권한 부족 상태를 우회해 배포를 진행하지 않고,
+  `검증 통과 시에만` 생성 단계로 진입하도록 보장
+
+### 2) 다중 클러스터 배포를 위한 Argo RBAC 최소 권한
+
+Backstage가 사용하는 Argo 토큰 계정(예: `backstage`)에 아래 권한이 필요:
+
+```csv
+p, role:backstage, applications, get, */*, allow
+p, role:backstage, applications, list, */*, allow
+p, role:backstage, projects, get, *, allow
+p, role:backstage, projects, list, *, allow
+p, role:backstage, clusters, get, *, allow
+p, role:backstage, clusters, list, *, allow
+p, role:backstage, clusters, create, *, allow
+g, backstage, role:backstage
+```
+
+운영 메모:
+- 허브 클러스터 외 타깃을 배포하려면 `clusters create` 권한이 필요하다.
+- RBAC 적용 후 Backstage가 사용하는 `ARGOCD_AUTH_TOKEN`이
+  위 권한이 매핑된 계정 토큰인지 함께 확인해야 한다.
+
 ### 8) EKS 선택 배포 안정화 (허브 매핑 + 비허브 자동 등록)
 
 - 배경:

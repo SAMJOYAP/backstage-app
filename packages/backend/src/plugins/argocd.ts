@@ -240,6 +240,16 @@ function isArgoPermissionDenied(message: string): boolean {
   );
 }
 
+function throwArgoRbacError(message: string): never {
+  throw new Error(
+    [
+      'Argo CD RBAC 권한이 부족하여 안전한 사전 검증을 완료할 수 없습니다.',
+      message,
+      '필요 권한: applications(get/list), projects(get/list), clusters(get/list), clusters(create: 비허브 자동등록 시).',
+    ].join(' '),
+  );
+}
+
 async function registerArgoEksCluster(options: {
   baseUrl: string;
   argoToken: string;
@@ -564,8 +574,8 @@ export function createArgoCDApp(options: { config: Config; logger: Logger }) {
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         if (isArgoPermissionDenied(message)) {
-          ctx.logger.warn(
-            `Skipping Argo application pre-check for "${appName}" because token has no applications get/list permission.`,
+          throwArgoRbacError(
+            `기존 Application 중복 확인 실패(app="${appName}"). token에 applications get/list 권한을 부여하세요.`,
           );
         } else {
           throw error;
@@ -592,8 +602,8 @@ export function createArgoCDApp(options: { config: Config; logger: Logger }) {
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         if (isArgoPermissionDenied(message)) {
-          ctx.logger.warn(
-            `Skipping Argo project pre-check for "${resolvedProjectName}" because token has no projects get/list permission.`,
+          throwArgoRbacError(
+            `Argo CD Project 검증 실패(project="${resolvedProjectName}"). token에 projects get/list 권한을 부여하세요.`,
           );
         } else {
           throw error;
@@ -623,8 +633,8 @@ export function createArgoCDApp(options: { config: Config; logger: Logger }) {
           } catch (error) {
             const message = error instanceof Error ? error.message : String(error);
             if (isArgoPermissionDenied(message)) {
-              ctx.logger.warn(
-                `Skipping Argo cluster list pre-check for "${destinationEksClusterName}" because token has no clusters get/list permission.`,
+              throwArgoRbacError(
+                `EKS Cluster 조회 실패(cluster="${destinationEksClusterName}"). token에 clusters get/list 권한을 부여하세요.`,
               );
             } else {
               throw error;
@@ -645,8 +655,8 @@ export function createArgoCDApp(options: { config: Config; logger: Logger }) {
             } catch (error) {
               const message = error instanceof Error ? error.message : String(error);
               if (isArgoPermissionDenied(message)) {
-                ctx.logger.warn(
-                  `Skipping Argo cluster auto-register for "${destinationEksClusterName}" because token has no clusters create permission.`,
+                throwArgoRbacError(
+                  `EKS Cluster 자동등록 실패(cluster="${destinationEksClusterName}"). token에 clusters create 권한을 부여하세요.`,
                 );
               } else {
                 throw error;
@@ -670,8 +680,8 @@ export function createArgoCDApp(options: { config: Config; logger: Logger }) {
             } catch (error) {
               const message = error instanceof Error ? error.message : String(error);
               if (isArgoPermissionDenied(message)) {
-                ctx.logger.warn(
-                  `Skipping Argo cluster post-check for "${destinationEksClusterName}" because token has no clusters get/list permission.`,
+                throwArgoRbacError(
+                  `EKS Cluster 등록 후 검증 실패(cluster="${destinationEksClusterName}"). token에 clusters get/list 권한을 부여하세요.`,
                 );
               } else {
                 throw error;
