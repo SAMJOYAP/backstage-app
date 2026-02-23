@@ -8,7 +8,6 @@ COPY packages packages
 
 # Comment this out if you don't have any internal plugins
 COPY plugins plugins
-COPY scripts scripts
 
 RUN find packages \! -name "package.json" -mindepth 2 -maxdepth 2 -exec rm -rf {} \+
 
@@ -85,7 +84,6 @@ WORKDIR /app
 
 # Copy the install dependencies from the build stage and context
 COPY --from=build --chown=node:node /app/yarn.lock /app/package.json /app/packages/backend/dist/skeleton/ ./
-COPY --from=build --chown=node:node /app/scripts ./scripts
 
 RUN --mount=type=cache,target=/home/node/.cache/yarn,sharing=locked,uid=1000,gid=1000 \
     yarn install --frozen-lockfile --production --network-timeout 600000
