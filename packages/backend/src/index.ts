@@ -2,6 +2,7 @@ import { createBackend } from '@backstage/backend-defaults';
 import { authModuleKeycloakOIDCProvider } from './plugins/auth';
 import { cnoeScaffolderActions } from './plugins/scaffolder';
 import { eksPlugin } from './plugins/eks';
+import { argoCdProjectsPlugin } from './plugins/argocd-projects';
 import { legacyPlugin } from '@backstage/backend-common';
 
 const backend = createBackend();
@@ -37,6 +38,7 @@ backend.add(
 backend.add(authModuleKeycloakOIDCProvider);
 backend.add(cnoeScaffolderActions);
 backend.add(eksPlugin);
+backend.add(argoCdProjectsPlugin);
 backend.add(import('@internal/backstage-plugin-terraform-backend'));
 
 backend.start();

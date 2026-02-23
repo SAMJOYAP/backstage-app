@@ -134,6 +134,10 @@ type ArgoClusterRef = {
   server: string;
 };
 
+type ArgoProjectRef = {
+  name: string;
+};
+
 async function listArgoClusters(options: {
   baseUrl: string;
   argoToken: string;
@@ -155,6 +159,29 @@ async function listArgoClusters(options: {
   return items.map((item: any): ArgoClusterRef => ({
     name: item?.name ?? '',
     server: item?.server ?? '',
+  }));
+}
+
+async function listArgoProjects(options: {
+  baseUrl: string;
+  argoToken: string;
+}): Promise<ArgoProjectRef[]> {
+  const { baseUrl, argoToken } = options;
+  const resp = await fetch(`${baseUrl}/api/v1/projects`, {
+    headers: {
+      Authorization: `Bearer ${argoToken}`,
+    },
+  });
+
+  if (!resp.ok) {
+    const body = await resp.text();
+    throw new Error(`Failed to list Argo CD projects: ${body}`);
+  }
+
+  const parsed = await resp.json();
+  const items = Array.isArray(parsed?.items) ? parsed.items : [];
+  return items.map((item: any): ArgoProjectRef => ({
+    name: item?.metadata?.name ?? '',
   }));
 }
 
@@ -422,6 +449,18 @@ export function createArgoCDApp(options: { config: Config; logger: Logger }) {
       const shouldCleanup = cleanupOnFailure ?? true;
       let resolvedDestinationServer =
         destinationServer ?? 'https://kubernetes.default.svc';
+      const argoProjects = await listArgoProjects({
+        baseUrl: matchedArgoInstance.url,
+        argoToken: token,
+      });
+      const hasProject = argoProjects.some(
+        (project: ArgoProjectRef) => project.name === resolvedProjectName,
+      );
+      if (!hasProject) {
+        throw new Error(
+          `Argo CD project "${resolvedProjectName}" does not exist in instance "${argoInstance}".`,
+        );
+      }
 
       if (destinationEksClusterName) {
         const region = destinationEksClusterRegion ?? 'ap-northeast-2';
