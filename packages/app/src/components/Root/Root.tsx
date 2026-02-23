@@ -28,16 +28,19 @@ import SearchIcon from '@material-ui/icons/Search';
 
 const useSidebarLogoStyles = makeStyles({
   root: {
-    width: sidebarConfig.drawerWidthClosed,
+    width: '100%',
     height: 3 * sidebarConfig.logoHeight,
     display: 'flex',
     flexFlow: 'row nowrap',
     alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: -14,
   },
   link: {
-    width: sidebarConfig.drawerWidthClosed,
-    marginLeft: 24,
+    width: '100%',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
 
