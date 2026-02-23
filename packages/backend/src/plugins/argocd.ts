@@ -231,6 +231,15 @@ async function argoApplicationExists(options: {
   return true;
 }
 
+function isArgoPermissionDenied(message: string): boolean {
+  const lowered = message.toLowerCase();
+  return (
+    lowered.includes('permission denied') ||
+    lowered.includes('"code":7') ||
+    lowered.includes('code = permissiondenied')
+  );
+}
+
 async function registerArgoEksCluster(options: {
   baseUrl: string;
   argoToken: string;
@@ -554,29 +563,41 @@ export function createArgoCDApp(options: { config: Config; logger: Logger }) {
         });
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
-        if (message.includes('permission denied')) {
-          throw new Error(
-            `Argo CD RBAC 권한 부족으로 기존 Application 중복 여부를 확인할 수 없습니다. token에 applications 조회 권한(get/list)을 부여한 뒤 다시 실행하세요.`,
+        if (isArgoPermissionDenied(message)) {
+          ctx.logger.warn(
+            `Skipping Argo application pre-check for "${appName}" because token has no applications get/list permission.`,
           );
+        } else {
+          throw error;
         }
-        throw error;
       }
       if (appExists) {
         throw new Error(
           `Argo CD application "${appName}" already exists in instance "${argoInstance}". Use a different app name or remove existing application first.`,
         );
       }
-      const argoProjects = await listArgoProjects({
-        baseUrl: matchedArgoInstance.url,
-        argoToken: token,
-      });
-      const hasProject = argoProjects.some(
-        (project: ArgoProjectRef) => project.name === resolvedProjectName,
-      );
-      if (!hasProject) {
-        throw new Error(
-          `Argo CD project "${resolvedProjectName}" does not exist in instance "${argoInstance}".`,
+      try {
+        const argoProjects = await listArgoProjects({
+          baseUrl: matchedArgoInstance.url,
+          argoToken: token,
+        });
+        const hasProject = argoProjects.some(
+          (project: ArgoProjectRef) => project.name === resolvedProjectName,
         );
+        if (!hasProject) {
+          throw new Error(
+            `Argo CD project "${resolvedProjectName}" does not exist in instance "${argoInstance}".`,
+          );
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        if (isArgoPermissionDenied(message)) {
+          ctx.logger.warn(
+            `Skipping Argo project pre-check for "${resolvedProjectName}" because token has no projects get/list permission.`,
+          );
+        } else {
+          throw error;
+        }
       }
 
       if (destinationEksClusterName) {
@@ -588,39 +609,73 @@ export function createArgoCDApp(options: { config: Config; logger: Logger }) {
             clusterName: destinationEksClusterName,
             region,
           });
-          const argoClusters = await listArgoClusters({
-            baseUrl: matchedArgoInstance.url,
-            argoToken: token,
-          });
-          const clusterExists = argoClusters.some(
-            (cluster: ArgoClusterRef) =>
-              cluster.server === endpoint ||
-              cluster.name === destinationEksClusterName,
-          );
-          if (!clusterExists) {
-            ctx.logger.info(
-              `Argo CD cluster registration not found for "${destinationEksClusterName}". Trying auto-register.`,
-            );
-            await registerArgoEksCluster({
-              baseUrl: matchedArgoInstance.url,
-              argoToken: token,
-              clusterName: destinationEksClusterName,
-              endpoint,
-              caData,
-            });
-            const refreshedClusters = await listArgoClusters({
+          let clusterExists = false;
+          try {
+            const argoClusters = await listArgoClusters({
               baseUrl: matchedArgoInstance.url,
               argoToken: token,
             });
-            const existsAfterRegister = refreshedClusters.some(
+            clusterExists = argoClusters.some(
               (cluster: ArgoClusterRef) =>
                 cluster.server === endpoint ||
                 cluster.name === destinationEksClusterName,
             );
-            if (!existsAfterRegister) {
-              throw new Error(
-                `EKS cluster "${destinationEksClusterName}" registration in Argo CD did not complete. Check Argo CD permissions/cluster auth settings.`,
+          } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            if (isArgoPermissionDenied(message)) {
+              ctx.logger.warn(
+                `Skipping Argo cluster list pre-check for "${destinationEksClusterName}" because token has no clusters get/list permission.`,
               );
+            } else {
+              throw error;
+            }
+          }
+          if (!clusterExists) {
+            ctx.logger.info(
+              `Argo CD cluster registration not found for "${destinationEksClusterName}". Trying auto-register.`,
+            );
+            try {
+              await registerArgoEksCluster({
+                baseUrl: matchedArgoInstance.url,
+                argoToken: token,
+                clusterName: destinationEksClusterName,
+                endpoint,
+                caData,
+              });
+            } catch (error) {
+              const message = error instanceof Error ? error.message : String(error);
+              if (isArgoPermissionDenied(message)) {
+                ctx.logger.warn(
+                  `Skipping Argo cluster auto-register for "${destinationEksClusterName}" because token has no clusters create permission.`,
+                );
+              } else {
+                throw error;
+              }
+            }
+            try {
+              const refreshedClusters = await listArgoClusters({
+                baseUrl: matchedArgoInstance.url,
+                argoToken: token,
+              });
+              const existsAfterRegister = refreshedClusters.some(
+                (cluster: ArgoClusterRef) =>
+                  cluster.server === endpoint ||
+                  cluster.name === destinationEksClusterName,
+              );
+              if (!existsAfterRegister) {
+                ctx.logger.warn(
+                  `Cluster "${destinationEksClusterName}" is not visible in Argo cluster list after register attempt.`,
+                );
+              }
+            } catch (error) {
+              const message = error instanceof Error ? error.message : String(error);
+              if (isArgoPermissionDenied(message)) {
+                ctx.logger.warn(
+                  `Skipping Argo cluster post-check for "${destinationEksClusterName}" because token has no clusters get/list permission.`,
+                );
+              } else {
+                throw error;
+              }
             }
           }
           resolvedDestinationServer = endpoint;
