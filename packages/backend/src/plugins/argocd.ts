@@ -25,6 +25,7 @@ async function createArgoApplicationWithoutPathValidation(options: {
   appName: string;
   projectName: string;
   namespace: string;
+  destinationServer: string;
   sourceRepo: string;
   sourcePath: string;
   labelValue: string;
@@ -35,6 +36,7 @@ async function createArgoApplicationWithoutPathValidation(options: {
     appName,
     projectName,
     namespace,
+    destinationServer,
     sourceRepo,
     sourcePath,
     labelValue,
@@ -49,7 +51,7 @@ async function createArgoApplicationWithoutPathValidation(options: {
     spec: {
       destination: {
         namespace,
-        server: 'https://kubernetes.default.svc',
+        server: destinationServer,
       },
       project: projectName,
       revisionHistoryLimit: 10,
@@ -94,6 +96,58 @@ async function createArgoApplicationWithoutPathValidation(options: {
     const body = await resp.text();
     throw new Error(`Error creating argo app with validate=false: ${body}`);
   }
+}
+
+async function getEksClusterEndpoint(options: {
+  clusterName: string;
+  region: string;
+}) {
+  const { clusterName, region } = options;
+  const logStream = new CaptureLogStream();
+
+  const command = [
+    'if ! command -v aws >/dev/null 2>&1; then',
+    '  echo "aws cli is not installed in backend pod";',
+    '  exit 1;',
+    'fi',
+    `aws eks describe-cluster --name "${clusterName}" --region "${region}" --query "cluster.endpoint" --output text`,
+  ].join('\n');
+
+  await executeShellCommand({
+    command: 'bash',
+    args: ['-lc', command],
+    logStream,
+  });
+
+  const endpoint = logStream.data.trim().split('\n').pop()?.trim() ?? '';
+  if (!endpoint.startsWith('https://')) {
+    throw new Error(
+      `Unable to resolve endpoint for EKS cluster "${clusterName}" in region "${region}"`,
+    );
+  }
+
+  return endpoint;
+}
+
+async function listArgoClusters(options: { baseUrl: string; argoToken: string }) {
+  const { baseUrl, argoToken } = options;
+  const resp = await fetch(`${baseUrl}/api/v1/clusters`, {
+    headers: {
+      Authorization: `Bearer ${argoToken}`,
+    },
+  });
+
+  if (!resp.ok) {
+    const body = await resp.text();
+    throw new Error(`Failed to list Argo CD clusters: ${body}`);
+  }
+
+  const parsed = await resp.json();
+  const items = Array.isArray(parsed?.items) ? parsed.items : [];
+  return items.map((item: any) => ({
+    name: item?.name ?? '',
+    server: item?.server ?? '',
+  }));
 }
 
 async function deleteArgoApplication(options: {
@@ -211,6 +265,9 @@ export function createArgoCDApp(options: { config: Config; logger: Logger }) {
     path: string;
     labelValue?: string;
     appNamespace: string;
+    destinationEksClusterName?: string;
+    destinationEksClusterRegion?: string;
+    destinationServer?: string;
     cleanupOnFailure?: boolean;
     cleanupGithubOwner?: string;
     cleanupGithubRepo?: string;
@@ -246,6 +303,18 @@ export function createArgoCDApp(options: { config: Config; logger: Logger }) {
           },
           appNamespace: {
             title: 'application name in argocd',
+            type: 'string',
+          },
+          destinationEksClusterName: {
+            title: 'target EKS cluster name for ArgoCD destination',
+            type: 'string',
+          },
+          destinationEksClusterRegion: {
+            title: 'aws region for target EKS cluster',
+            type: 'string',
+          },
+          destinationServer: {
+            title: 'target Kubernetes API server URL for ArgoCD destination',
             type: 'string',
           },
           argoInstance: {
@@ -293,6 +362,9 @@ export function createArgoCDApp(options: { config: Config; logger: Logger }) {
         path,
         labelValue,
         appNamespace,
+        destinationEksClusterName,
+        destinationEksClusterRegion,
+        destinationServer,
         cleanupOnFailure,
         cleanupGithubOwner,
         cleanupGithubRepo,
@@ -340,24 +412,68 @@ export function createArgoCDApp(options: { config: Config; logger: Logger }) {
       const resolvedProjectName = projectName ? projectName : appName;
       const resolvedLabelValue = labelValue ? labelValue : appName;
       const shouldCleanup = cleanupOnFailure ?? true;
+      let resolvedDestinationServer =
+        destinationServer ?? 'https://kubernetes.default.svc';
 
-      try {
-        await argoSvc.createArgoApplication({
+      if (destinationEksClusterName) {
+        const region = destinationEksClusterRegion ?? 'ap-northeast-2';
+        const endpoint = await getEksClusterEndpoint({
+          clusterName: destinationEksClusterName,
+          region,
+        });
+        const argoClusters = await listArgoClusters({
           baseUrl: matchedArgoInstance.url,
           argoToken: token,
-          appName: appName,
-          projectName: resolvedProjectName,
-          namespace: appNamespace,
-          sourceRepo: repoUrl,
-          sourcePath: path,
-          labelValue: resolvedLabelValue,
         });
+        const clusterExists = argoClusters.some(
+          cluster =>
+            cluster.server === endpoint ||
+            cluster.name === destinationEksClusterName,
+        );
+        if (!clusterExists) {
+          throw new Error(
+            `Selected EKS cluster "${destinationEksClusterName}" (${endpoint}) is not registered in Argo CD instance "${argoInstance}". Register the cluster in Argo CD first.`,
+          );
+        }
+        resolvedDestinationServer = endpoint;
+      }
+      const useCustomDestination =
+        resolvedDestinationServer !== 'https://kubernetes.default.svc';
+
+      try {
+        if (useCustomDestination) {
+          await createArgoApplicationWithoutPathValidation({
+            baseUrl: matchedArgoInstance.url,
+            argoToken: token,
+            appName,
+            projectName: resolvedProjectName,
+            namespace: appNamespace,
+            destinationServer: resolvedDestinationServer,
+            sourceRepo: repoUrl,
+            sourcePath: path,
+            labelValue: resolvedLabelValue,
+          });
+        } else {
+          await argoSvc.createArgoApplication({
+            baseUrl: matchedArgoInstance.url,
+            argoToken: token,
+            appName: appName,
+            projectName: resolvedProjectName,
+            namespace: appNamespace,
+            sourceRepo: repoUrl,
+            sourcePath: path,
+            labelValue: resolvedLabelValue,
+          });
+        }
       } catch (e) {
         const errorText = e instanceof Error ? e.message : String(e);
         // If the app is registered before GitOps bootstrap, path validation can fail, so retry with fallback settings.
         if (
+          !useCustomDestination &&
           errorText.includes('app path does not exist') ||
+          (!useCustomDestination &&
           errorText.includes('Unable to generate manifests in')
+          )
         ) {
           ctx.logger.warn(
             `Argo app path validation failed for "${appName}". Retrying with validate=false/upsert=true.`,
@@ -369,6 +485,7 @@ export function createArgoCDApp(options: { config: Config; logger: Logger }) {
               appName,
               projectName: resolvedProjectName,
               namespace: appNamespace,
+              destinationServer: resolvedDestinationServer,
               sourceRepo: repoUrl,
               sourcePath: path,
               labelValue: resolvedLabelValue,
