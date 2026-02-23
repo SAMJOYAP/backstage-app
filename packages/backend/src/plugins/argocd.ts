@@ -590,62 +590,69 @@ export function createArgoCDApp(options: { config: Config; logger: Logger }) {
       const configuredHubClusterName =
         config.getOptionalString('aws.eks.hubClusterName') ?? 'sesac-ref-impl';
       const effectiveHubClusterName = hubClusterName ?? configuredHubClusterName;
+      const destinationIsHub =
+        Boolean(destinationEksClusterName) &&
+        isHubClusterDestination({
+          destinationEksClusterName,
+          hubClusterName: effectiveHubClusterName,
+        });
       let resolvedDestinationServer =
         destinationServer ?? 'https://kubernetes.default.svc';
 
-      let appExists = false;
-      try {
-        appExists = await argoApplicationExists({
-          baseUrl: matchedArgoInstance.url,
-          argoToken: token,
-          appName,
-        });
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        if (isArgoPermissionDenied(message)) {
-          throwArgoRbacError(
-            `기존 Application 중복 확인 실패(app="${appName}"). token에 applications get/list 권한을 부여하세요.`,
-          );
-        } else {
-          throw error;
+      if (destinationIsHub) {
+        ctx.logger.info(
+          `Hub cluster fast-path enabled for "${destinationEksClusterName}". Skipping Argo preflight RBAC checks and using in-cluster destination.`,
+        );
+      } else {
+        let appExists = false;
+        try {
+          appExists = await argoApplicationExists({
+            baseUrl: matchedArgoInstance.url,
+            argoToken: token,
+            appName,
+          });
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          if (isArgoPermissionDenied(message)) {
+            throwArgoRbacError(
+              `기존 Application 중복 확인 실패(app="${appName}"). token에 applications get/list 권한을 부여하세요.`,
+            );
+          } else {
+            throw error;
+          }
         }
-      }
-      if (appExists) {
-        throw new Error(
-          `Argo CD application "${appName}" already exists in instance "${argoInstance}". Use a different app name or remove existing application first.`,
-        );
-      }
-      try {
-        const argoProjects = await listArgoProjects({
-          baseUrl: matchedArgoInstance.url,
-          argoToken: token,
-        });
-        const hasProject = argoProjects.some(
-          (project: ArgoProjectRef) => project.name === resolvedProjectName,
-        );
-        if (!hasProject) {
+        if (appExists) {
           throw new Error(
-            `Argo CD project "${resolvedProjectName}" does not exist in instance "${argoInstance}".`,
+            `Argo CD application "${appName}" already exists in instance "${argoInstance}". Use a different app name or remove existing application first.`,
           );
         }
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        if (isArgoPermissionDenied(message)) {
-          throwArgoRbacError(
-            `Argo CD Project 검증 실패(project="${resolvedProjectName}"). token에 projects get/list 권한을 부여하세요.`,
+        try {
+          const argoProjects = await listArgoProjects({
+            baseUrl: matchedArgoInstance.url,
+            argoToken: token,
+          });
+          const hasProject = argoProjects.some(
+            (project: ArgoProjectRef) => project.name === resolvedProjectName,
           );
-        } else {
-          throw error;
+          if (!hasProject) {
+            throw new Error(
+              `Argo CD project "${resolvedProjectName}" does not exist in instance "${argoInstance}".`,
+            );
+          }
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          if (isArgoPermissionDenied(message)) {
+            throwArgoRbacError(
+              `Argo CD Project 검증 실패(project="${resolvedProjectName}"). token에 projects get/list 권한을 부여하세요.`,
+            );
+          } else {
+            throw error;
+          }
         }
       }
 
       if (destinationEksClusterName) {
-        if (
-          isHubClusterDestination({
-            destinationEksClusterName,
-            hubClusterName: effectiveHubClusterName,
-          })
-        ) {
+        if (destinationIsHub) {
           ctx.logger.info(
             `Hub cluster "${destinationEksClusterName}" selected; skipping EKS lookup/registration and using in-cluster destination.`,
           );
