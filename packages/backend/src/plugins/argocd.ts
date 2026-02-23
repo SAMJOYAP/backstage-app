@@ -185,6 +185,30 @@ async function listArgoProjects(options: {
   }));
 }
 
+async function argoApplicationExists(options: {
+  baseUrl: string;
+  argoToken: string;
+  appName: string;
+}): Promise<boolean> {
+  const { baseUrl, argoToken, appName } = options;
+  const resp = await fetch(
+    `${baseUrl}/api/v1/applications/${encodeURIComponent(appName)}`,
+    {
+      headers: {
+        Authorization: `Bearer ${argoToken}`,
+      },
+    },
+  );
+  if (resp.status === 404) {
+    return false;
+  }
+  if (!resp.ok) {
+    const body = await resp.text();
+    throw new Error(`Failed to check Argo CD application existence: ${body}`);
+  }
+  return true;
+}
+
 async function deleteArgoApplication(options: {
   baseUrl: string;
   argoToken: string;
@@ -308,6 +332,7 @@ export function createArgoCDApp(options: { config: Config; logger: Logger }) {
     cleanupGithubRepo?: string;
     cleanupEcrRepository?: string;
     cleanupEcrRegion?: string;
+    preflightOnly?: boolean;
   }>({
     id: 'cnoe:create-argocd-app',
     description: 'creates argocd app',
@@ -384,6 +409,10 @@ export function createArgoCDApp(options: { config: Config; logger: Logger }) {
             title: 'aws region for ecr cleanup',
             type: 'string',
           },
+          preflightOnly: {
+            title: 'run validation only and skip argocd app creation',
+            type: 'boolean',
+          },
         },
       },
       output: {},
@@ -405,6 +434,7 @@ export function createArgoCDApp(options: { config: Config; logger: Logger }) {
         cleanupGithubRepo,
         cleanupEcrRepository,
         cleanupEcrRegion,
+        preflightOnly,
       } = ctx.input;
 
       const argoUserName =
@@ -447,8 +477,20 @@ export function createArgoCDApp(options: { config: Config; logger: Logger }) {
       const resolvedProjectName = projectName ? projectName : appName;
       const resolvedLabelValue = labelValue ? labelValue : appName;
       const shouldCleanup = cleanupOnFailure ?? true;
+      const validateOnly = preflightOnly ?? false;
       let resolvedDestinationServer =
         destinationServer ?? 'https://kubernetes.default.svc';
+
+      const appExists = await argoApplicationExists({
+        baseUrl: matchedArgoInstance.url,
+        argoToken: token,
+        appName,
+      });
+      if (appExists) {
+        throw new Error(
+          `Argo CD application "${appName}" already exists in instance "${argoInstance}". Use a different app name or remove existing application first.`,
+        );
+      }
       const argoProjects = await listArgoProjects({
         baseUrl: matchedArgoInstance.url,
         argoToken: token,
@@ -479,10 +521,17 @@ export function createArgoCDApp(options: { config: Config; logger: Logger }) {
         );
         if (!clusterExists) {
           throw new Error(
-            `Selected EKS cluster "${destinationEksClusterName}" (${endpoint}) is not registered in Argo CD instance "${argoInstance}". Register the cluster in Argo CD first.`,
+            `Selected EKS cluster "${destinationEksClusterName}" (${endpoint}) is not registered in Argo CD instance "${argoInstance}". Register this EKS cluster in Argo CD before template execution.`,
           );
         }
         resolvedDestinationServer = endpoint;
+      }
+
+      if (validateOnly) {
+        ctx.logger.info(
+          `Preflight passed for app "${appName}" on Argo instance "${argoInstance}"`,
+        );
+        return;
       }
       const useCustomDestination =
         resolvedDestinationServer !== 'https://kubernetes.default.svc';
