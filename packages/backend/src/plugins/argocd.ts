@@ -250,6 +250,28 @@ function throwArgoRbacError(message: string): never {
   );
 }
 
+function normalizeEksClusterName(value?: string): string {
+  if (!value) {
+    return '';
+  }
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return '';
+  }
+  const arnMatch = trimmed.match(/^arn:aws:eks:[^:]+:\d+:cluster\/(.+)$/i);
+  const normalized = (arnMatch?.[1] ?? trimmed).trim().toLowerCase();
+  return normalized;
+}
+
+function isHubClusterDestination(options: {
+  destinationEksClusterName?: string;
+  hubClusterName: string;
+}): boolean {
+  const destination = normalizeEksClusterName(options.destinationEksClusterName);
+  const hub = normalizeEksClusterName(options.hubClusterName);
+  return Boolean(destination) && Boolean(hub) && destination === hub;
+}
+
 async function registerArgoEksCluster(options: {
   baseUrl: string;
   argoToken: string;
@@ -414,6 +436,7 @@ export function createArgoCDApp(options: { config: Config; logger: Logger }) {
     cleanupEcrRepository?: string;
     cleanupEcrRegion?: string;
     preflightOnly?: boolean;
+    hubClusterName?: string;
   }>({
     id: 'cnoe:create-argocd-app',
     description: 'creates argocd app',
@@ -494,6 +517,10 @@ export function createArgoCDApp(options: { config: Config; logger: Logger }) {
             title: 'run validation only and skip argocd app creation',
             type: 'boolean',
           },
+          hubClusterName: {
+            title: 'hub EKS cluster name (skip EKS validation when destination matches)',
+            type: 'string',
+          },
         },
       },
       output: {},
@@ -516,6 +543,7 @@ export function createArgoCDApp(options: { config: Config; logger: Logger }) {
         cleanupEcrRepository,
         cleanupEcrRegion,
         preflightOnly,
+        hubClusterName,
       } = ctx.input;
 
       const argoUserName =
@@ -559,8 +587,9 @@ export function createArgoCDApp(options: { config: Config; logger: Logger }) {
       const resolvedLabelValue = labelValue ? labelValue : appName;
       const shouldCleanup = cleanupOnFailure ?? true;
       const validateOnly = preflightOnly ?? false;
-      const hubClusterName =
+      const configuredHubClusterName =
         config.getOptionalString('aws.eks.hubClusterName') ?? 'sesac-ref-impl';
+      const effectiveHubClusterName = hubClusterName ?? configuredHubClusterName;
       let resolvedDestinationServer =
         destinationServer ?? 'https://kubernetes.default.svc';
 
@@ -611,7 +640,15 @@ export function createArgoCDApp(options: { config: Config; logger: Logger }) {
       }
 
       if (destinationEksClusterName) {
-        if (destinationEksClusterName === hubClusterName) {
+        if (
+          isHubClusterDestination({
+            destinationEksClusterName,
+            hubClusterName: effectiveHubClusterName,
+          })
+        ) {
+          ctx.logger.info(
+            `Hub cluster "${destinationEksClusterName}" selected; skipping EKS lookup/registration and using in-cluster destination.`,
+          );
           resolvedDestinationServer = 'https://kubernetes.default.svc';
         } else {
           const region = destinationEksClusterRegion ?? 'ap-northeast-2';
