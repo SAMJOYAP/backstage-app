@@ -11,6 +11,10 @@ import {
   catalogImportPlugin,
 } from '@backstage/plugin-catalog-import';
 import { ScaffolderPage, scaffolderPlugin } from '@backstage/plugin-scaffolder';
+import {
+  ScaffolderFieldExtensions,
+  createScaffolderFieldExtension,
+} from '@backstage/plugin-scaffolder-react';
 import { orgPlugin } from '@backstage/plugin-org';
 import { SearchPage } from '@backstage/plugin-search';
 import { TechRadarPage } from '@backstage-community/plugin-tech-radar';
@@ -46,6 +50,14 @@ import {
   UnifiedThemeProvider
 } from "@backstage/theme";
 import { TerraformPluginPage } from '@internal/plugin-terraform';
+import { EksClusterPickerField } from './components/scaffolder/EksClusterPickerField';
+
+const EksClusterPickerFieldExtension = scaffolderPlugin.provide(
+  createScaffolderFieldExtension({
+    name: 'EksClusterPicker',
+    component: EksClusterPickerField,
+  }),
+);
 
 const app = createApp({
   apis,
@@ -127,7 +139,16 @@ const routes = (
         <ReportIssue />
       </TechDocsAddons>
     </Route>
-    <Route path="/create" element={<ScaffolderPage />} />
+    <Route
+      path="/create"
+      element={
+        <ScaffolderPage>
+          <ScaffolderFieldExtensions>
+            <EksClusterPickerFieldExtension />
+          </ScaffolderFieldExtensions>
+        </ScaffolderPage>
+      }
+    />
     <Route path="/api-docs" element={<ApiExplorerPage />} />
     <Route
       path="/tech-radar"
@@ -161,6 +182,5 @@ export default app.createRoot(
     </AppRouter>
   </>,
 );
-
 
 

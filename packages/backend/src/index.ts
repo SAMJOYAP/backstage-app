@@ -1,6 +1,7 @@
 import { createBackend } from '@backstage/backend-defaults';
 import { authModuleKeycloakOIDCProvider } from './plugins/auth';
 import { cnoeScaffolderActions } from './plugins/scaffolder';
+import { eksPlugin } from './plugins/eks';
 import { legacyPlugin } from '@backstage/backend-common';
 
 const backend = createBackend();
@@ -35,6 +36,7 @@ backend.add(
 // cnoe plugins
 backend.add(authModuleKeycloakOIDCProvider);
 backend.add(cnoeScaffolderActions);
+backend.add(eksPlugin);
 backend.add(import('@internal/backstage-plugin-terraform-backend'));
 
 backend.start();

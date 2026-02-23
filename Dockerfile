@@ -48,7 +48,7 @@ FROM node:20.18.1-bookworm-slim
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
     apt-get update && \
-    apt-get install -y --no-install-recommends python3 python3-pip python3-venv g++ build-essential ca-certificates curl
+    apt-get install -y --no-install-recommends python3 python3-pip python3-venv g++ build-essential ca-certificates curl awscli
 
 RUN yarn config set python /usr/bin/python3
 
