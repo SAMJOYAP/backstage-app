@@ -247,6 +247,10 @@
   - `sesac.io/template-color`
   - `sesac.io/template-stack`
 - `service/infrastructure` 타입, owner, 즐겨찾기 표시 복원
+- 카드 동작/가독성 보강:
+  - 즐겨찾기 클릭 시 템플릿 상세 페이지로 이동하지 않도록 이벤트 전파 차단
+  - `service`/`infrastructure` 타입 배지 색상 구분 강화
+  - 다크/라이트 테마 모두에서 description/메타 텍스트가 읽히도록 테마 기반 색상 적용
 
 ### 7) 프로젝트 이름 기반 기본값 자동 입력 확장
 
