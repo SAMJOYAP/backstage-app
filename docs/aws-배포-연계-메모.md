@@ -246,11 +246,7 @@
   - `sesac.io/template-icon`
   - `sesac.io/template-color`
   - `sesac.io/template-stack`
-- 카드 UX 개선:
-  - 고정 높이
-  - description 3줄 ellipsis
-  - 가독성 색상/간격 보정
-  - `service/infrastructure` 타입, owner, 즐겨찾기 표시 복원
+- `service/infrastructure` 타입, owner, 즐겨찾기 표시 복원
 
 ### 7) 프로젝트 이름 기반 기본값 자동 입력 확장
 
@@ -261,5 +257,3 @@
   - `repoUrl`: 레포지토리 이름 미입력 시 프로젝트 이름 자동 사용
   - `hostPrefix`: 미입력 시 프로젝트 이름 자동 사용
   - `targetNamespace`: 미입력 시 프로젝트 이름 자동 사용
-- 동작:
-  - 프로젝트 이름 입력 시 placeholder가 실시간으로 갱신됨
