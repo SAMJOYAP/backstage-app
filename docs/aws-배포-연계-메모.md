@@ -181,3 +181,35 @@
 최종 상태:
 - `backstage-already11` Deployment 정상(1/1)
 - Catalog API 토큰 기반 자동 반영 경로 사용 가능
+
+---
+
+## 최신 상태 (2026-02-23 밤) - UI/클라우드 템플릿 운영 보강
+
+### 1) 사이드바 SVG 로고 중앙 정렬
+
+- 증상:
+  - 좌측 메뉴 상단 로고가 중앙이 아닌 좌측 치우침
+- 수정 파일:
+  - `packages/app/src/components/Root/Root.tsx`
+- 조치:
+  - `marginLeft` 제거
+  - 로고 컨테이너를 `justifyContent: center` 기준으로 정렬
+- 커밋:
+  - `1da38f0`
+
+### 2) EKS Cluster Picker AccessDenied 대응
+
+- 오류 메시지:
+  - `Failed to list EKS clusters`
+  - `An error occurred (AccessDeniedException) ... eks:ListClusters`
+- 원인:
+  - Backstage backend가 사용하는 IAM 역할에 EKS 조회 권한 부족
+- 조치:
+  - 노드 역할에 EKS/EC2 조회 권한(inline policy) 추가
+  - 파드 재검증 결과 `aws eks list-clusters --region ap-northeast-2` 성공
+
+운영 참고:
+- 현재 EKS picker는 AWS CLI를 통해 목록을 조회하므로,
+  런타임 IAM 권한(`eks:ListClusters`, `eks:DescribeCluster`)이 필수다.
+- 향후 VPC/Subnet picker를 추가할 경우 `ec2:Describe*` 계열 읽기 권한도 함께 관리해야 한다.
