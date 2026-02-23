@@ -213,3 +213,28 @@
 - 현재 EKS picker는 AWS CLI를 통해 목록을 조회하므로,
   런타임 IAM 권한(`eks:ListClusters`, `eks:DescribeCluster`)이 필수다.
 - 향후 VPC/Subnet picker를 추가할 경우 `ec2:Describe*` 계열 읽기 권한도 함께 관리해야 한다.
+
+### 3) Argo CD Project Picker + Preflight 검증 강화
+
+- `ArgoProjectPicker` 필드 확장 추가
+  - 실행 시점 Argo CD 프로젝트 목록을 조회해 선택 가능
+- `cnoe:create-argocd-app` preflight 검증 강화
+  - 선택한 Argo Project 존재 여부 확인
+  - 선택한 EKS Cluster가 Argo CD destination cluster로 등록되어 있는지 확인
+
+효과:
+- 템플릿 실행 중 잘못된 project/cluster 입력으로 인한 생성 실패를 사전에 차단
+
+### 4) Namespace 기본값 자동 입력 필드 추가
+
+- `DefaultNamespace` 필드 확장 추가
+- `targetNamespace`에 프로젝트 이름(`name`/`projectName`)을 초기값으로 자동 입력
+- 사용자가 직접 수정한 값은 그대로 유지
+
+### 5) 템플릿 입력 UX 최신화
+
+- `EKS Cluster` 필수화
+- `클라우드 배포 옵션` + `배포 옵션`을 `클라우드/배포 옵션` 단일 섹션으로 통합
+- picker helper text 한글화
+  - EKS: `<region> 리전의 EKS 클러스터 목록입니다.`
+  - Argo: `<instance> Argo Instance의 Project 목록입니다.`
