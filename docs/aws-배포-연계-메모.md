@@ -261,3 +261,21 @@
   - `repoUrl`: 레포지토리 이름 미입력 시 프로젝트 이름 자동 사용
   - `hostPrefix`: 미입력 시 프로젝트 이름 자동 사용
   - `targetNamespace`: 미입력 시 프로젝트 이름 자동 사용
+
+### 8) EKS 선택 배포 안정화 (허브 매핑 + 비허브 자동 등록)
+
+- 배경:
+  - 동일 클러스터를 선택해도 Argo CD의 destination server 인식값과
+    EKS API endpoint 값이 다르면 `cluster not found`가 발생할 수 있음
+- 반영:
+  1. 허브 클러스터(`sesac-ref-impl`) 선택 시 destination을
+     `https://kubernetes.default.svc`로 강제 매핑
+  2. 허브가 아닌 클러스터는 Argo CD 등록 여부 확인 후
+     미등록이면 자동 등록 시도
+  3. 이미 등록된 클러스터는 skip 처리
+  4. 자동 등록 후 재조회 검증까지 통과해야 다음 단계 진행
+- UI 반영:
+  - EKS 선택 목록에서 허브 클러스터에 `(허브 클러스터)` 라벨 표시
+- 실행 순서 보강:
+  - `create-repo` 이전 preflight 단계에서 위 검증을 먼저 수행
+  - 검증 실패 시 repo/ECR 생성 전에 즉시 중단
