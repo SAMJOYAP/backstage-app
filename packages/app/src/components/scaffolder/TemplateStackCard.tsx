@@ -1,7 +1,9 @@
 import React from 'react';
+import { RELATION_OWNED_BY } from '@backstage/catalog-model';
 import { TemplateEntityV1beta3 } from '@backstage/plugin-scaffolder-common';
 import { useRouteRef } from '@backstage/core-plugin-api';
 import { scaffolderPlugin } from '@backstage/plugin-scaffolder';
+import { getEntityRelations, EntityRefLinks, FavoriteEntity } from '@backstage/plugin-catalog-react';
 import {
   Box,
   Card,
@@ -24,6 +26,7 @@ import TimelineIcon from '@material-ui/icons/Timeline';
 import DeviceHubIcon from '@material-ui/icons/DeviceHub';
 import WidgetsIcon from '@material-ui/icons/Widgets';
 import BlurOnIcon from '@material-ui/icons/BlurOn';
+import UserIcon from '@material-ui/icons/AccountCircle';
 
 const useStyles = makeStyles({
   card: {
@@ -34,12 +37,19 @@ const useStyles = makeStyles({
     display: 'flex',
     flexDirection: 'column',
     gap: 10,
-    minHeight: 170,
+    minHeight: 190,
   },
   topRow: {
     display: 'flex',
     alignItems: 'center',
     gap: 12,
+  },
+  titleRow: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 8,
+    flex: 1,
   },
   iconWrap: {
     width: 36,
@@ -63,6 +73,21 @@ const useStyles = makeStyles({
     overflow: 'hidden',
     minHeight: 58,
   },
+  chipRow: {
+    display: 'flex',
+    gap: 8,
+    flexWrap: 'wrap',
+  },
+  ownerRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 6,
+    color: '#475569',
+    minHeight: 22,
+  },
+  favoriteWrap: {
+    marginTop: -2,
+  },
 });
 
 const iconMap = {
@@ -81,6 +106,41 @@ const iconMap = {
   ray: BlurOnIcon,
 } as const;
 
+const fallbackTemplateMeta: Record<
+  string,
+  { icon: keyof typeof iconMap; color: string; stack: string }
+> = {
+  'nodejs-nginx-webapp': { icon: 'nodejs', color: '#3C873A', stack: 'Node.js' },
+  'springboot-gradle-apache': { icon: 'java', color: '#EA6A47', stack: 'Java' },
+  'terraform-eks': { icon: 'eks', color: '#0EA5E9', stack: 'EKS' },
+  'terraform-ec2': { icon: 'ec2', color: '#F59E0B', stack: 'EC2' },
+  'terraform-rds': { icon: 'rds', color: '#2563EB', stack: 'RDS' },
+  'terraform-dynamodb': {
+    icon: 'dynamodb',
+    color: '#7C3AED',
+    stack: 'DynamoDB',
+  },
+  'terraform-s3': { icon: 's3', color: '#0284C7', stack: 'S3' },
+  'terraform-elasticache': {
+    icon: 'elasticache',
+    color: '#DC2626',
+    stack: 'ElastiCache',
+  },
+  'terraform-data-pipeline': {
+    icon: 'datapipeline',
+    color: '#0D9488',
+    stack: 'Data Pipeline',
+  },
+  'app-with-aws-resources': { icon: 'golang', color: '#14B8A6', stack: 'Go' },
+  'argo-workflows-basic': {
+    icon: 'workflow',
+    color: '#F97316',
+    stack: 'Argo Workflows',
+  },
+  basic: { icon: 'kubernetes', color: '#0EA5E9', stack: 'Kubernetes' },
+  'ray-serve-kubernetes': { icon: 'ray', color: '#7C3AED', stack: 'Ray' },
+};
+
 export const TemplateStackCard = ({
   template,
 }: {
@@ -88,14 +148,20 @@ export const TemplateStackCard = ({
 }) => {
   const classes = useStyles();
   const toTemplate = useRouteRef(scaffolderPlugin.routes.selectedTemplate);
+  const fallback = fallbackTemplateMeta[template.metadata.name];
 
   const iconKey =
     template.metadata.annotations?.['sesac.io/template-icon']?.toLowerCase() ??
+    fallback?.icon ??
     '';
   const color =
-    template.metadata.annotations?.['sesac.io/template-color'] ?? '#64748b';
+    template.metadata.annotations?.['sesac.io/template-color'] ??
+    fallback?.color ??
+    '#64748b';
   const stackLabel =
-    template.metadata.annotations?.['sesac.io/template-stack'] ?? 'Template';
+    template.metadata.annotations?.['sesac.io/template-stack'] ??
+    fallback?.stack ??
+    'Template';
 
   const Icon =
     iconMap[iconKey as keyof typeof iconMap] ??
@@ -104,6 +170,8 @@ export const TemplateStackCard = ({
   const namespace = template.metadata.namespace ?? 'default';
   const title = template.metadata.title ?? template.metadata.name;
   const description = template.metadata.description ?? '템플릿 설명이 없습니다.';
+  const ownerRefs = getEntityRelations(template, RELATION_OWNED_BY);
+  const templateType = template.spec.type ?? 'template';
 
   return (
     <Card
@@ -123,19 +191,43 @@ export const TemplateStackCard = ({
             <Box className={classes.iconWrap}>
               <Icon fontSize="small" />
             </Box>
-            <Typography variant="h6" className={classes.title}>
-              {title}
-            </Typography>
+            <Box className={classes.titleRow}>
+              <Typography variant="h6" className={classes.title}>
+                {title}
+              </Typography>
+              <Box className={classes.favoriteWrap}>
+                <FavoriteEntity entity={template} style={{ padding: 0 }} />
+              </Box>
+            </Box>
           </Box>
           <Typography variant="body2" className={classes.description}>
             {description}
           </Typography>
-          <Box>
+          <Box className={classes.chipRow}>
             <Chip
               size="small"
               label={stackLabel}
               style={{ backgroundColor: `${color}22`, color }}
             />
+            <Chip
+              size="small"
+              label={templateType}
+              style={{ backgroundColor: '#E2E8F0', color: '#334155' }}
+            />
+          </Box>
+          <Box className={classes.ownerRow}>
+            {ownerRefs.length > 0 ? (
+              <>
+                <UserIcon fontSize="small" />
+                <EntityRefLinks
+                  entityRefs={ownerRefs}
+                  defaultKind="Group"
+                  hideIcons
+                />
+              </>
+            ) : (
+              <Typography variant="caption">owner 미지정</Typography>
+            )}
           </Box>
         </CardContent>
       </CardActionArea>
