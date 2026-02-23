@@ -545,11 +545,22 @@ export function createArgoCDApp(options: { config: Config; logger: Logger }) {
       let resolvedDestinationServer =
         destinationServer ?? 'https://kubernetes.default.svc';
 
-      const appExists = await argoApplicationExists({
-        baseUrl: matchedArgoInstance.url,
-        argoToken: token,
-        appName,
-      });
+      let appExists = false;
+      try {
+        appExists = await argoApplicationExists({
+          baseUrl: matchedArgoInstance.url,
+          argoToken: token,
+          appName,
+        });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        if (message.includes('permission denied')) {
+          throw new Error(
+            `Argo CD RBAC 권한 부족으로 기존 Application 중복 여부를 확인할 수 없습니다. token에 applications 조회 권한(get/list)을 부여한 뒤 다시 실행하세요.`,
+          );
+        }
+        throw error;
+      }
       if (appExists) {
         throw new Error(
           `Argo CD application "${appName}" already exists in instance "${argoInstance}". Use a different app name or remove existing application first.`,

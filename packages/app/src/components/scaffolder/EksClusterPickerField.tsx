@@ -77,6 +77,13 @@ export const EksClusterPickerField = (
     };
   }, [discoveryApi, fetchApi, region]);
 
+  useEffect(() => {
+    if (!formData && clusters.length > 0) {
+      const defaultCluster = clusters.find(c => c.name === hubClusterName);
+      onChange(defaultCluster?.name ?? clusters[0].name);
+    }
+  }, [clusters, formData, hubClusterName, onChange]);
+
   const hasErrors = Boolean(rawErrors?.length) || Boolean(error);
   const helperText =
     error ??
@@ -100,9 +107,6 @@ export const EksClusterPickerField = (
         value={formData ?? ''}
         onChange={event => onChange(String(event.target.value))}
       >
-        <MenuItem value="">
-          <em>선택 안 함</em>
-        </MenuItem>
         {clusters.map(cluster => (
           <MenuItem
             key={`${cluster.region}:${cluster.name}`}
