@@ -224,6 +224,24 @@ async function argoApplicationExists(options: {
   if (resp.status === 404) {
     return false;
   }
+  if (resp.status === 403) {
+    const body = await resp.text();
+    // Argo can return 403 for non-existent apps on direct GET.
+    // Fall back to list-based lookup to avoid false RBAC failures.
+    if (isArgoPermissionDenied(body)) {
+      const listResp = await fetch(`${baseUrl}/api/v1/applications`, {
+        headers: {
+          Authorization: `Bearer ${argoToken}`,
+        },
+      });
+      if (listResp.ok) {
+        const parsed = await listResp.json();
+        const items = Array.isArray(parsed?.items) ? parsed.items : [];
+        return items.some((item: any) => item?.metadata?.name === appName);
+      }
+    }
+    throw new Error(`Failed to check Argo CD application existence: ${body}`);
+  }
   if (!resp.ok) {
     const body = await resp.text();
     throw new Error(`Failed to check Argo CD application existence: ${body}`);
