@@ -54,6 +54,8 @@ import { EksClusterPickerField } from './components/scaffolder/EksClusterPickerF
 import { ArgoProjectPickerField } from './components/scaffolder/ArgoProjectPickerField';
 import { DefaultNamespaceField } from './components/scaffolder/DefaultNamespaceField';
 import { TemplateStackCard } from './components/scaffolder/TemplateStackCard';
+import { RepoUrlFromProjectPickerField } from './components/scaffolder/RepoUrlFromProjectPickerField';
+import { DefaultFromProjectTextField } from './components/scaffolder/DefaultFromProjectTextField';
 
 const EksClusterPickerFieldExtension = scaffolderPlugin.provide(
   createScaffolderFieldExtension({
@@ -73,6 +75,20 @@ const DefaultNamespaceFieldExtension = scaffolderPlugin.provide(
   createScaffolderFieldExtension({
     name: 'DefaultNamespace',
     component: DefaultNamespaceField,
+  }),
+);
+
+const RepoUrlFromProjectPickerFieldExtension = scaffolderPlugin.provide(
+  createScaffolderFieldExtension({
+    name: 'RepoUrlFromProjectPicker',
+    component: RepoUrlFromProjectPickerField,
+  }),
+);
+
+const DefaultFromProjectTextFieldExtension = scaffolderPlugin.provide(
+  createScaffolderFieldExtension({
+    name: 'DefaultFromProjectText',
+    component: DefaultFromProjectTextField,
   }),
 );
 
@@ -166,6 +182,8 @@ const routes = (
             <EksClusterPickerFieldExtension />
             <ArgoProjectPickerFieldExtension />
             <DefaultNamespaceFieldExtension />
+            <RepoUrlFromProjectPickerFieldExtension />
+            <DefaultFromProjectTextFieldExtension />
           </ScaffolderFieldExtensions>
         </ScaffolderPage>
       }
