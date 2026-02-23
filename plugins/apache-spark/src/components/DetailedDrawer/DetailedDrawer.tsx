@@ -60,20 +60,20 @@ export const DrawerContent = ({
   const yamlString = stringify(apacheSpark);
   return (
     <TabbedLayout>
-      <TabbedLayout.Route path="/" title="개요">
+      <TabbedLayout.Route path="/" title="Overview">
         <>
           <div>
             <DrawerOverview sparkApp={apacheSpark} />
           </div>
         </>
       </TabbedLayout.Route>
-      <TabbedLayout.Route path="/manifests" title="매니페스트">
+      <TabbedLayout.Route path="/manifests" title="Manifest">
         <>
           <div className={classes.header}>
             <Typography variant="h6">{apacheSpark.metadata.name}</Typography>
             <IconButton
               key="dismiss"
-              title="닫기"
+              title="Close"
               onClick={() => toggleDrawer(false)}
               color="inherit"
             >
@@ -81,17 +81,17 @@ export const DrawerContent = ({
             </IconButton>
           </div>
           <div className={classes.content}>
-            <CopyTextButton text={yamlString} tooltipText="복사" />
+            <CopyTextButton text={yamlString} tooltipText="Copy" />
             <pre>{yamlString}</pre>
           </div>
         </>
       </TabbedLayout.Route>
-      <TabbedLayout.Route path="/live-logs" title="실시간 로그">
+      <TabbedLayout.Route path="/live-logs" title="Live logs">
         <>
           <div className={classes.logs2}>
             <div className={classes.logs}>
               <Typography variant="h6">
-                {apacheSpark.metadata.name} 드라이버 로그
+                Driver Log for {apacheSpark.metadata.name}
               </Typography>
               <ApacheSparkDriverLogs sparkApp={apacheSpark} />
             </div>
@@ -99,7 +99,7 @@ export const DrawerContent = ({
           <div className={classes.logs2}>
             <div className={classes.logs}>
               <Typography variant="h6">
-                {apacheSpark.metadata.name} 실행기 로그
+                Executor Logs for {apacheSpark.metadata.name}
               </Typography>
               <ApacheSparkExecutorLogs sparkApp={apacheSpark} />
             </div>

@@ -2,8 +2,8 @@
 
 ## 목적
 
-이 저장소(`backstage-app`)에서 만든 커스텀 Backstage 이미지를
-`SAMJOYAP/gitops`를 통해 `backstage-kr` 배포에 연결한다.
+이 저장소(`backstage-already11`)에서 만든 커스텀 Backstage 이미지를
+`SAMJOYAP/gitops`를 통해 `backstage-already11` 배포에 연결한다.
 
 ## 현재 반영된 핵심 사항
 
@@ -26,20 +26,20 @@
 
 `SAMJOYAP/gitops`의 아래 파일에서 이 이미지를 참조한다.
 
-- `apps/backstage-kr/values-kr.yaml`
+- `apps/backstage-already11/values-already11.yaml`
   - `backstage.image.registry`
   - `backstage.image.repository`
   - `backstage.image.tag`
 
-즉, 실제 배포 버전 전환은 `gitops` 저장소의 `values-kr.yaml` tag 교체로 수행한다.
+즉, 실제 배포 버전 전환은 `gitops` 저장소의 `values-already11.yaml` tag 교체로 수행한다.
 
 ## 권장 운영 절차
 
-1. `backstage-app`에서 변경 개발/검증
+1. `backstage-already11`에서 변경 개발/검증
 2. 이미지 빌드 및 레지스트리 push
-3. `gitops/apps/backstage-kr/values-kr.yaml` tag 업데이트(PR 기반)
+3. `gitops/apps/backstage-already11/values-already11.yaml` tag 업데이트(PR 기반)
 4. Argo CD 동기화 확인
-5. `backstage-kr`에서 검증 완료 후 운영 전환 판단
+5. `backstage-already11`에서 검증 완료 후 운영 전환 판단
 
 ## CI/CD 자동화 (main push 기준)
 
@@ -54,13 +54,13 @@
    - HEAD가 `v1.2.3` 태그면: `1.2.3`
    - HEAD가 태그가 아니면: `기준태그-짧은SHA` (예: `1.2.3-a1b2c3d`)
 3. `linux/amd64` 이미지 빌드 후 ECR push
-4. `gitops/apps/backstage-kr/values-kr.yaml` 자동 수정
+4. `gitops/apps/backstage-already11/values-already11.yaml` 자동 수정
    - `registry`, `repository`, `tag`
 5. GitOps 레포(`SAMJOYAP/gitops`)에 PR 생성
 6. PR auto-merge 설정
-7. Argo CD가 해당 변경을 감지해 `backstage-kr` 최신화
+7. Argo CD가 해당 변경을 감지해 `backstage-already11` 최신화
 
-### GitHub Secrets (backstage-app 레포)
+### GitHub Secrets (backstage-already11 레포)
 
 - `AWS_ACCESS_KEY_ID`
 - `AWS_SECRET_ACCESS_KEY`
@@ -81,23 +81,23 @@
 
 ## 트러블슈팅 문서 위치
 
-`backstage-kr` 배포/Argo CD/Ingress 이슈의 상세 트러블슈팅은 운영 레포에 기록:
+`backstage-already11` 배포/Argo CD/Ingress 이슈의 상세 트러블슈팅은 운영 레포에 기록:
 
-- `reference-implementation-aws/docs/Backstage_kr_트러블슈팅_기록.md`
+- `reference-implementation-aws/docs/Backstage_already11_트러블슈팅_기록.md`
 
 ---
 
 ## 최신 반영 사항 (2026-02-22)
 
-### 1) GitOps `apps/backstage-kr` 부트스트랩 보강
+### 1) GitOps `apps/backstage-already11` 부트스트랩 보강
 
 - 파일: `.github/workflows/build-and-deploy-ecr.yaml`
 - 개선점:
-  - `apps/backstage-kr` 디렉터리 자동 생성
+  - `apps/backstage-already11` 디렉터리 자동 생성
   - `manifests/` 하위 필수 파일 자동 생성
     - `external-secrets.yaml`
     - `k8s-config-secret.yaml`
-  - `values-kr.yaml` 파일 존재 여부 사전 체크(없으면 명확한 에러로 실패)
+  - `values-already11.yaml` 파일 존재 여부 사전 체크(없으면 명확한 에러로 실패)
 
 ### 2) 워크플로 YAML 문법 안정화
 
@@ -106,8 +106,8 @@
 
 ### 3) 운영 모델 재확인
 
-- `backstage-app`은 이미지 빌드/배포 트리거 역할
-- 실제 배포 선언은 `SAMJOYAP/gitops/apps/backstage-kr`에서 관리
+- `backstage-already11`은 이미지 빌드/배포 트리거 역할
+- 실제 배포 선언은 `SAMJOYAP/gitops/apps/backstage-already11`에서 관리
 - Argo CD는 GitOps repo 변경을 감지해 반영
 
 ### 4) Scaffolder 실패 보상 삭제(rollback) 액션 추가

@@ -80,19 +80,19 @@ export const DrawerOverview = (props: { sparkApp: ApacheSpark }) => {
   const data = generateMetadata(props.sparkApp)
   return (
     <div className={useStyles().content}>
-      <InfoCard title="Apache Spark 애플리케이션">
+      <InfoCard title="Apache Spark Application">
         <StructuredMetadataTable
           metadata={data.app}
           options={{ titleFormat: upperCaseFirstChar }}
         />
       </InfoCard>
-      <InfoCard title="드라이버">
+      <InfoCard title="Driver">
         <StructuredMetadataTable
           metadata={data.driver}
           options={{ titleFormat: upperCaseFirstChar }}
         />
       </InfoCard>
-      <InfoCard title="실행기">
+      <InfoCard title="Executors">
         <StructuredMetadataTable
           metadata={data.executor}
           options={{ titleFormat: upperCaseFirstChar }}

@@ -16,12 +16,12 @@ import { WorkflowTemplateTable } from '../WorkflowTemplateOverview/WorkflowTempl
 
 export const ArgoWorkflowsOverviewPage = () => (
   <Page themeId="tool">
-    <Header title="Argo 워크플로우">
-      <HeaderLabel label="라이프사이클" value="알파" />
+    <Header title="Argo Workflows">
+      <HeaderLabel label="Lifecycle" value="Alpha" />
     </Header>
     <Content>
-      <ContentHeader title="개요">
-        <SupportButton>Argo 워크플로우 현황을 확인합니다.</SupportButton>
+      <ContentHeader title="Overview">
+        <SupportButton>Overview of your Argo Workflows</SupportButton>
       </ContentHeader>
       <Grid item>
         <OverviewTable />
@@ -37,7 +37,7 @@ export const ArgoWorkflowsOverviewCard = (props: { title?: string }) => {
   const { entity } = useEntity();
   if (isArgoWorkflowsAvailable(entity)) {
     return (
-      <InfoCard {...{ title: props.title ?? 'Argo 워크플로우' }}>
+      <InfoCard {...{ title: props.title ?? 'Argo Workflows' }}>
         <OverviewTable />
       </InfoCard>
     );
@@ -49,7 +49,7 @@ export const ArgoWorkflowsTemplatesOverviewCard = () => {
   const { entity } = useEntity();
   if (isArgoWorkflowsAvailable(entity)) {
     return (
-      <InfoCard {...{ title: 'Argo 워크플로우 템플릿' }}>
+      <InfoCard {...{ title: 'Argo Workflows Templates' }}>
         <WorkflowTemplateTable />
       </InfoCard>
     );

@@ -4,7 +4,7 @@ This repository contains code for the [Backstage](https://backstage.io) images u
 
 ## Container Images
 
-Container images are pushed to the GitHub Container Registry and available [here](https://github.com/cnoe-io/backstage-app/pkgs/container/backstage-app).
+Container images are pushed to the GitHub Container Registry and available [here](https://github.com/cnoe-io/backstage-already11/pkgs/container/backstage-already11).
 
 
 ## Local Development
@@ -45,7 +45,7 @@ Once all ArgoCD applications are healthy, you need to update a few fields in the
 
 #### Update control plane URL
 
-The control plane port must be updated every time a cluster is created. Run the `kubectl cluster-info` command to get the control plane URL. Once you have your URL, update your `app-config.yaml` file at [this line](https://github.com/cnoe-io/backstage-app/blob/9ee3514e51c1a354b7fe85a90117faf8328bfa0b/app-config.yaml#L122).
+The control plane port must be updated every time a cluster is created. Run the `kubectl cluster-info` command to get the control plane URL. Once you have your URL, update your `app-config.yaml` file at [this line](https://github.com/cnoe-io/backstage-already11/blob/9ee3514e51c1a354b7fe85a90117faf8328bfa0b/app-config.yaml#L122).
 
 For example:
 
@@ -64,7 +64,7 @@ Since tokens are generated each time the backstage service account is created, y
 
 `kubectl -n backstage exec -it deploy/backstage  -- cat /var/run/secrets/kubernetes.io/serviceaccount/token`  
 
-Copy the token value and updated the app-config file at [this line](https://github.com/cnoe-io/backstage-app/blob/main/app-config.yaml#L127).
+Copy the token value and updated the app-config file at [this line](https://github.com/cnoe-io/backstage-already11/blob/main/app-config.yaml#L127).
 
 For example:
 
@@ -75,7 +75,7 @@ eyJhbGciOiJSUzI1NiIsImtpZCI6IkRxbDRCSnNicjFwekFqdmxwNDc5MHJqeUlFSjhxNHU0LV95OC1s
 ```
 
 If you do not want to place the token value in your file, you can use environment variables instead:
-1. Set [this line](https://github.com/cnoe-io/backstage-app/blob/main/app-config.yaml#L127) value to be `${BACKSTAGE_SA_TOKEN}`.
+1. Set [this line](https://github.com/cnoe-io/backstage-already11/blob/main/app-config.yaml#L127) value to be `${BACKSTAGE_SA_TOKEN}`.
 2. Then export the token value:
    ```bash
    export BACKSTAGE_SA_TOKEN=$(kubectl -n backstage exec -it deploy/backstage -- cat /var/run/secrets/kubernetes.io/serviceaccount/token)
@@ -83,7 +83,7 @@ If you do not want to place the token value in your file, you can use environmen
 
 #### Update ArgoCD token
 
-ArgoCD admin passwords are generated on each fresh installation. You need to update the configuration file accordingly. To obtain your password, run: `./idpbuilder get secrets -p argocd`. Then update [this line](https://github.com/cnoe-io/backstage-app/blob/9ee3514e51c1a354b7fe85a90117faf8328bfa0b/app-config.yaml#L136)
+ArgoCD admin passwords are generated on each fresh installation. You need to update the configuration file accordingly. To obtain your password, run: `./idpbuilder get secrets -p argocd`. Then update [this line](https://github.com/cnoe-io/backstage-already11/blob/9ee3514e51c1a354b7fe85a90117faf8328bfa0b/app-config.yaml#L136)
 
 For example:
 
@@ -101,7 +101,7 @@ Data:
 #### Update Gitea Credentials
 
 Gitea admin passwords are generated on each fresh installation as well. To obtain your password, run: `./idpbuilder get secrets -p argocd`.
-Then update [this line](https://github.com/cnoe-io/backstage-app/blob/9ee3514e51c1a354b7fe85a90117faf8328bfa0b/app-config.yaml#L40) and [this line](https://github.com/cnoe-io/backstage-app/blob/9ee3514e51c1a354b7fe85a90117faf8328bfa0b/app-config.yaml#L44).
+Then update [this line](https://github.com/cnoe-io/backstage-already11/blob/9ee3514e51c1a354b7fe85a90117faf8328bfa0b/app-config.yaml#L40) and [this line](https://github.com/cnoe-io/backstage-already11/blob/9ee3514e51c1a354b7fe85a90117faf8328bfa0b/app-config.yaml#L44).
 
 For example:
 

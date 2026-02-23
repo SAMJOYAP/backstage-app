@@ -30,21 +30,21 @@ type TableData = {
 
 const columns: TableColumn<TableData>[] = [
   {
-    title: '이름',
+    title: 'Name',
     field: 'name',
   },
-  { title: '네임스페이스', field: 'namespace', type: 'string' },
+  { title: 'Namespace', field: 'namespace', type: 'string' },
   {
-    title: '애플리케이션 상태',
+    title: 'Application State',
     field: 'applicationState',
   },
   {
-    title: '시작 시간',
+    title: 'StartTime',
     field: 'startedAt',
     type: 'datetime',
     defaultSort: 'desc',
   },
-  { title: '종료 시간', field: 'finishedAt', type: 'datetime' },
+  { title: 'EndTime', field: 'finishedAt', type: 'datetime' },
 ];
 
 const useDrawerStyles = makeStyles((theme: Theme) =>
@@ -76,13 +76,13 @@ export const ApacheSparkOverviewTable = () => {
       let state = {};
       switch (val.status?.applicationState.state) {
         case 'RUNNING':
-          state = <StatusRunning>실행 중</StatusRunning>;
+          state = <StatusRunning>Running</StatusRunning>;
           break;
         case 'COMPLETED':
-          state = <StatusOK>완료</StatusOK>;
+          state = <StatusOK>COMPLETED</StatusOK>;
           break;
         case 'FAILED':
-          state = <StatusError>실패</StatusError>;
+          state = <StatusError>FAILED</StatusError>;
           break;
         default:
           state = (

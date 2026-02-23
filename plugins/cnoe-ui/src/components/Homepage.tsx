@@ -11,7 +11,9 @@ import {
   TemplateBackstageLogoIcon,
 } from '@backstage/plugin-home';
 
-import { LogoBig } from './logos';
+import {
+  LogoBig,
+} from './logos';
 
 const useStyles = makeStyles(theme => ({
   searchBar: {
@@ -22,11 +24,6 @@ const useStyles = makeStyles(theme => ({
     padding: '8px 0',
     borderRadius: '50px',
     margin: 'auto',
-    alignItems: 'center',
-  },
-  searchInputRoot: {
-    width: '95%',
-    margin: '0 auto',
   },
 }));
 
@@ -54,15 +51,7 @@ export const CNOEHomepage = () => {
           <Grid container justifyContent="center" spacing={6}>
             <HomePageCompanyLogo className={container} logo={<LogoBig />} />
             <Grid container item xs={12} alignItems="center" direction="row">
-              <HomePageSearchBar
-                classes={{ root: classes.searchBar }}
-                placeholder="검색"
-                InputProps={{
-                  classes: {
-                    root: classes.searchInputRoot,
-                  },
-                }}
-              />
+              <HomePageSearchBar classes={{ root: classes.searchBar }} placeholder="Search" />
             </Grid>
             <Grid container item xs={12}>
               <Grid item xs={12} md={6}>
@@ -70,16 +59,16 @@ export const CNOEHomepage = () => {
               </Grid>
               <Grid item xs={12} md={6}>
                 <HomePageToolkit
-                  title="바로가기"
+                  title="Quick Links"
                   tools={[
                     {
                       url: '/catalog',
-                      label: '카탈로그',
-                      icon: <TemplateBackstageLogoIcon />,
+                      label: 'Catalog',
+                      icon: <TemplateBackstageLogoIcon/>,
                     },
                     {
                       url: '/docs',
-                      label: '기술 문서',
+                      label: 'Tech Docs',
                       icon: <TemplateBackstageLogoIcon />,
                     },
                   ]}

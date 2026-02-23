@@ -76,21 +76,21 @@ const techdocsContent = (
 const cicdContent = (
   <EntitySwitch>
     <EntitySwitch.Case if={e => isArgoWorkflowsAvailable(e)}>
-      <EntityArgoWorkflowsOverviewCard title="워크플로우" />
+      <EntityArgoWorkflowsOverviewCard title="Workflows"/>
     </EntitySwitch.Case>
 
     <EntitySwitch.Case>
       <EmptyState
-        title="이 엔티티에는 CI/CD 정보가 없습니다"
+        title="No CI/CD available for this entity"
         missing="info"
-        description="CI/CD를 사용하려면 컴포넌트에 필요한 annotation을 추가해야 합니다. 아래 버튼에서 Backstage annotation 문서를 확인하세요."
+        description="You need to add an annotation to your component if you want to enable CI/CD for it. You can read more about annotations in Backstage by clicking the button below."
         action={
           <Button
             variant="contained"
             color="primary"
             href="https://backstage.io/docs/features/software-catalog/well-known-annotations"
           >
-            자세히 보기
+            Read more
           </Button>
         }
       />
@@ -157,7 +157,7 @@ const overviewContent = (
 
 const serviceEntityPage = (
   <EntityLayout>
-    <EntityLayout.Route path="/" title="개요">
+    <EntityLayout.Route path="/" title="Overview">
       {overviewContent}
     </EntityLayout.Route>
 
@@ -165,11 +165,11 @@ const serviceEntityPage = (
       {cicdContent}
     </EntityLayout.Route>
 
-    <EntityLayout.Route path="/kubernetes" title="쿠버네티스" if={e => isKubernetesAvailable(e)}>
+    <EntityLayout.Route path="/kubernetes" title="Kubernetes" if={e => isKubernetesAvailable(e)}>
       <EntityKubernetesContent refreshIntervalMs={30000} />
     </EntityLayout.Route>
 
-    <EntityLayout.Route path="/apache-spark" title="스파크" if={isApacheSparkAvailable}>
+    <EntityLayout.Route path="/apache-spark" title="Spark" if={isApacheSparkAvailable}>
       <ApacheSparkPage />
     </EntityLayout.Route>
 
@@ -184,7 +184,7 @@ const serviceEntityPage = (
       </Grid>
     </EntityLayout.Route>
 
-    <EntityLayout.Route path="/docs" title="문서">
+    <EntityLayout.Route path="/docs" title="Docs">
       {techdocsContent}
     </EntityLayout.Route>
   </EntityLayout>
@@ -192,7 +192,7 @@ const serviceEntityPage = (
 
 const websiteEntityPage = (
   <EntityLayout>
-    <EntityLayout.Route path="/" title="개요">
+    <EntityLayout.Route path="/" title="Overview">
       {overviewContent}
     </EntityLayout.Route>
 
@@ -200,7 +200,7 @@ const websiteEntityPage = (
       {cicdContent}
     </EntityLayout.Route>
 
-    <EntityLayout.Route path="/docs" title="문서">
+    <EntityLayout.Route path="/docs" title="Docs">
       {techdocsContent}
     </EntityLayout.Route>
   </EntityLayout>
@@ -215,11 +215,11 @@ const websiteEntityPage = (
 
 const defaultEntityPage = (
   <EntityLayout>
-    <EntityLayout.Route path="/" title="개요">
+    <EntityLayout.Route path="/" title="Overview">
       {overviewContent}
     </EntityLayout.Route>
 
-    <EntityLayout.Route path="/docs" title="문서">
+    <EntityLayout.Route path="/docs" title="Docs">
       {techdocsContent}
     </EntityLayout.Route>
   </EntityLayout>
@@ -241,7 +241,7 @@ const componentPage = (
 
 const apiPage = (
   <EntityLayout>
-    <EntityLayout.Route path="/" title="개요">
+    <EntityLayout.Route path="/" title="Overview">
       <Grid container spacing={3}>
         {entityWarningContent}
         <Grid item md={6}>
@@ -261,7 +261,7 @@ const apiPage = (
       </Grid>
     </EntityLayout.Route>
 
-    <EntityLayout.Route path="/definition" title="정의">
+    <EntityLayout.Route path="/definition" title="Definition">
       <Grid container spacing={3}>
         <Grid item xs={12}>
           <EntityApiDefinitionCard />
@@ -273,7 +273,7 @@ const apiPage = (
 
 const userPage = (
   <EntityLayout>
-    <EntityLayout.Route path="/" title="개요">
+    <EntityLayout.Route path="/" title="Overview">
       <Grid container spacing={3}>
         {entityWarningContent}
         <Grid item xs={12} md={6}>
@@ -289,7 +289,7 @@ const userPage = (
 
 const groupPage = (
   <EntityLayout>
-    <EntityLayout.Route path="/" title="개요">
+    <EntityLayout.Route path="/" title="Overview">
       <Grid container spacing={3}>
         {entityWarningContent}
         <Grid item xs={12} md={6}>
@@ -311,7 +311,7 @@ const groupPage = (
 
 const systemPage = (
   <EntityLayout>
-    <EntityLayout.Route path="/" title="개요">
+    <EntityLayout.Route path="/" title="Overview">
       <Grid container spacing={3} alignItems="stretch">
         {entityWarningContent}
         <Grid item md={6}>
@@ -334,11 +334,11 @@ const systemPage = (
         </Grid>
       </Grid>
     </EntityLayout.Route>
-    <EntityLayout.Route path="/diagram" title="다이어그램">
+    <EntityLayout.Route path="/diagram" title="Diagram">
       <EntityCatalogGraphCard
         variant="gridItem"
         direction={Direction.TOP_BOTTOM}
-        title="시스템 다이어그램"
+        title="System Diagram"
         height={700}
         relations={[
           RELATION_PART_OF,
@@ -358,7 +358,7 @@ const systemPage = (
 
 const domainPage = (
   <EntityLayout>
-    <EntityLayout.Route path="/" title="개요">
+    <EntityLayout.Route path="/" title="Overview">
       <Grid container spacing={3} alignItems="stretch">
         {entityWarningContent}
         <Grid item md={6}>

@@ -7,10 +7,9 @@ import {
   catalogPlugin,
 } from '@backstage/plugin-catalog';
 import {
+  CatalogImportPage,
   catalogImportPlugin,
 } from '@backstage/plugin-catalog-import';
-import { catalogTranslationRef } from '@backstage/plugin-catalog/alpha';
-import { catalogReactTranslationRef } from '@backstage/plugin-catalog-react/alpha';
 import { ScaffolderPage, scaffolderPlugin } from '@backstage/plugin-scaffolder';
 import { orgPlugin } from '@backstage/plugin-org';
 import { SearchPage } from '@backstage/plugin-search';
@@ -23,21 +22,12 @@ import {
 import { TechDocsAddons } from '@backstage/plugin-techdocs-react';
 import { ReportIssue } from '@backstage/plugin-techdocs-module-addons-contrib';
 import { UserSettingsPage } from '@backstage/plugin-user-settings';
-import { userSettingsTranslationRef } from '@backstage/plugin-user-settings/alpha';
-import { createTranslationMessages } from '@backstage/core-plugin-api/alpha';
-import { appLanguageApiRef } from '@backstage/core-plugin-api/alpha';
-import { apis, keycloakOIDCAuthApiRef } from './apis';
+import {apis, keycloakOIDCAuthApiRef} from './apis';
 import { entityPage } from './components/catalog/EntityPage';
 import { searchPage } from './components/search/SearchPage';
-import { KoreanCatalogImportPage } from './components/catalog-import/KoreanCatalogImportPage';
 import { Root } from './components/Root';
 
-import {
-  AlertDisplay,
-  OAuthRequestDialog,
-  SignInPage,
-} from '@backstage/core-components';
-import { coreComponentsTranslationRef } from '@backstage/core-components/alpha';
+import {AlertDisplay, OAuthRequestDialog, SignInPage} from '@backstage/core-components';
 import { createApp } from '@backstage/app-defaults';
 import { AppRouter, FlatRoutes } from '@backstage/core-app-api';
 import { CatalogGraphPage } from '@backstage/plugin-catalog-graph';
@@ -45,21 +35,17 @@ import { RequirePermission } from '@backstage/plugin-permission-react';
 import { catalogEntityCreatePermission } from '@backstage/plugin-catalog-common/alpha';
 import LightIcon from '@material-ui/icons/WbSunny';
 import {
-  CNOEHomepage as ALREADY11Homepage,
-  cnoeLightTheme as already11LightTheme,
-  cnoeDarkTheme as already11DarkTheme,
+  CNOEHomepage,
+  cnoeLightTheme,
+  cnoeDarkTheme,
 } from '@internal/plugin-cnoe-ui';
-import { configApiRef, useApi } from '@backstage/core-plugin-api';
+import {configApiRef, useApi} from "@backstage/core-plugin-api";
 import { ArgoWorkflowsPage } from '@internal/plugin-argo-workflows';
 import { ApacheSparkPage } from '@internal/plugin-apache-spark';
-import { UnifiedThemeProvider } from '@backstage/theme';
-import { TerraformPluginPage } from '@internal/plugin-terraform';
 import {
-  catalogKoreanMessages,
-  catalogReactKoreanMessages,
-  coreComponentsKoreanMessages,
-  userSettingsKoreanMessages,
-} from './translations/ko';
+  UnifiedThemeProvider
+} from "@backstage/theme";
+import { TerraformPluginPage } from '@internal/plugin-terraform';
 
 const app = createApp({
   apis,
@@ -74,8 +60,8 @@ const app = createApp({
           {...props}
           provider={{
             id: 'keycloak-oidc',
-            title: '키클록',
-            message: '키클록 계정으로 로그인',
+            title: 'Keycloak',
+            message: 'Sign in using Keycloak',
             apiRef: keycloakOIDCAuthApiRef,
           }}
         />
@@ -101,56 +87,30 @@ const app = createApp({
   },
   themes: [
     {
-      id: 'already11-light-theme',
-      title: '라이트 테마',
+      id: 'cnoe-light-theme',
+      title: 'Light Theme',
       variant: 'light',
       icon: <LightIcon />,
       Provider: ({ children }) => (
-        <UnifiedThemeProvider theme={already11LightTheme} children={children} />
+        <UnifiedThemeProvider theme={cnoeLightTheme} children={children} />
       ),
     },
     {
-      id: 'already11-dark-theme',
-      title: '다크 테마',
+      id: 'cnoe-dark-theme',
+      title: 'Dark Theme',
       variant: 'dark',
       icon: <LightIcon />,
       Provider: ({ children }) => (
-        <UnifiedThemeProvider theme={already11DarkTheme} children={children} />
+        <UnifiedThemeProvider theme={cnoeDarkTheme} children={children} />
       ),
     },
   ],
-  __experimentalTranslations: {
-    defaultLanguage: 'ko',
-    availableLanguages: ['ko', 'en'],
-    resources: [
-      createTranslationMessages({
-        ref: catalogTranslationRef,
-        full: false,
-        messages: catalogKoreanMessages,
-      }),
-      createTranslationMessages({
-        ref: catalogReactTranslationRef,
-        full: false,
-        messages: catalogReactKoreanMessages,
-      }),
-      createTranslationMessages({
-        ref: userSettingsTranslationRef,
-        full: false,
-        messages: userSettingsKoreanMessages,
-      }),
-      createTranslationMessages({
-        ref: coreComponentsTranslationRef,
-        full: false,
-        messages: coreComponentsKoreanMessages,
-      }),
-    ],
-  },
 });
 
 const routes = (
   <FlatRoutes>
     <Route path="/" element={<Navigate to="home" />} />
-    <Route path="/home" element={<ALREADY11Homepage />} />
+    <Route path="/home" element={<CNOEHomepage />} />
     <Route path="/catalog" element={<CatalogIndexPage />} />
     <Route
       path="/catalog/:namespace/:kind/:name"
@@ -177,7 +137,7 @@ const routes = (
       path="/catalog-import"
       element={
         <RequirePermission permission={catalogEntityCreatePermission}>
-          <KoreanCatalogImportPage />
+          <CatalogImportPage />
         </RequirePermission>
       }
     />
@@ -192,19 +152,8 @@ const routes = (
   </FlatRoutes>
 );
 
-const ForceKoreanLanguage = () => {
-  const appLanguageApi = useApi(appLanguageApiRef);
-
-  React.useEffect(() => {
-    appLanguageApi.setLanguage('ko');
-  }, [appLanguageApi]);
-
-  return null;
-};
-
 export default app.createRoot(
   <>
-    <ForceKoreanLanguage />
     <AlertDisplay />
     <OAuthRequestDialog />
     <AppRouter>
@@ -212,3 +161,6 @@ export default app.createRoot(
     </AppRouter>
   </>,
 );
+
+
+

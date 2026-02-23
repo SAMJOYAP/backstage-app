@@ -47,7 +47,7 @@ const SearchPage = () => {
 
   return (
     <Page themeId="home">
-      <Header title="검색" />
+      <Header title="Search" />
       <Content>
         <Grid container direction="row">
           <Grid item xs={12}>
@@ -57,17 +57,17 @@ const SearchPage = () => {
           </Grid>
           <Grid item xs={3}>
             <SearchType.Accordion
-              name="결과 유형"
+              name="Result Type"
               defaultValue="software-catalog"
               types={[
                 {
                   value: 'software-catalog',
-                  name: '소프트웨어 카탈로그',
+                  name: 'Software Catalog',
                   icon: <CatalogIcon />,
                 },
                 {
                   value: 'techdocs',
-                  name: '문서',
+                  name: 'Documentation',
                   icon: <DocsIcon />,
                 },
               ]}
@@ -76,7 +76,7 @@ const SearchPage = () => {
               {types.includes('techdocs') && (
                 <SearchFilter.Select
                   className={classes.filter}
-                  label="엔티티"
+                  label="Entity"
                   name="name"
                   values={async () => {
                     // Return a list of entities which are documented.
@@ -96,13 +96,13 @@ const SearchPage = () => {
               )}
               <SearchFilter.Select
                 className={classes.filter}
-                label="종류"
+                label="Kind"
                 name="kind"
                 values={['Component', 'Template']}
               />
               <SearchFilter.Checkbox
                 className={classes.filter}
-                label="라이프사이클"
+                label="Lifecycle"
                 name="lifecycle"
                 values={['experimental', 'production']}
               />

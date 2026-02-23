@@ -70,7 +70,7 @@ export const ApacheSparkExecutorLogs = (props: { sparkApp: ApacheSpark }) => {
   if (props.sparkApp.status.applicationState.state !== 'RUNNING') {
     return (
       <Alert severity="info">
-        실행기 로그는 Spark 애플리케이션이 RUNNING 상태일 때만 확인할 수 있습니다
+        Executor logs are only available for Spark Applications in RUNNING state
       </Alert>
     );
   }
@@ -89,8 +89,8 @@ export const ApacheSparkExecutorLogs = (props: { sparkApp: ApacheSpark }) => {
   return (
     <>
       <Select
-        placeholder="하나 선택"
-        label="실행기 선택"
+        placeholder="Select One"
+        label="Select a executor"
         items={executors}
         onChange={handleChange}
       />

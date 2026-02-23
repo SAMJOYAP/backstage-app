@@ -33,7 +33,7 @@ export const OutputTable = ({ outputs }:any) => {
 
   return (
     <>
-      <InfoCard title="Terraform 출력값">
+      <InfoCard title="Terraform Outputs">
         <StructuredMetadataTable
           metadata={data}
         />
@@ -44,7 +44,7 @@ export const OutputTable = ({ outputs }:any) => {
 
 export const ResourceTable = ({ resources,setResourceDetail }:{resources:any, setResourceDetail:Dispatch<SetStateAction<any>>}) => {
   const columns: TableColumn[] = [
-    { title: '이름',
+    { title: 'Name',
       render: (row: any) => {
         const resourceDetailsObj = {
           name: row.name,
@@ -63,13 +63,13 @@ export const ResourceTable = ({ resources,setResourceDetail }:{resources:any, se
         );
       },
     },
-    { title: '유형', field: 'type' },
+    { title: 'Type', field: 'type' },
   ];
 
   return (
     <>
       <Table
-        title="Terraform 리소스"
+        title="Terraform Resources"
         options={{ search: true, paging: true }}
         columns={columns}
         data={resources}
@@ -142,14 +142,14 @@ export const ResourceDetailComponent = ({resourceDetail,allResources,setResource
 
   return (
     <div style={{maxWidth: '800px'}}>
-      <InfoCard title="상세 정보">
+      <InfoCard title="Details">
         { <StructuredMetadataTable metadata={details} /> }
       </InfoCard>
       &nbsp;
-      <InfoCard title="속성">
+      <InfoCard title="Attributes">
         { <StructuredMetadataTable metadata={attributes} /> }
       </InfoCard>
-      <InfoCard title="의존성">
+      <InfoCard title="Dependencies">
         <DependencyGraph
           nodes={dependNodes}
           edges={dependEdges}

@@ -26,7 +26,7 @@ export const WorkflowTemplateTable = () => {
 
   const columns: TableColumn[] = [
     {
-      title: "이름",
+      title: "Name",
       field: "name",
       render: (data: any | TableData, _): any => {
         if (data && argoWorkflowsBaseUrl) {
@@ -42,8 +42,8 @@ export const WorkflowTemplateTable = () => {
       },
       defaultSort: "desc",
     },
-    { title: "네임스페이스", field: "namespace", type: "string" },
-    { title: "엔트리포인트", field: "entrypoint", type: "string" },
+    { title: "namespace", field: "namespace", type: "string" },
+    { title: "entrypoint", field: "entrypoint", type: "string" },
   ];
 
   const { value, loading, error } = useAsync(async () => {
@@ -67,7 +67,7 @@ export const WorkflowTemplateTable = () => {
   if (loading) {
     return <Progress />;
   } else if (error) {
-    return <Alert severity="info">워크플로우 템플릿을 찾을 수 없습니다</Alert>;
+    return <Alert severity="info">no workflow templates found</Alert>;
   }
 
   return (

@@ -8,7 +8,6 @@ import { ArgoService } from '@roadiehq/backstage-plugin-argo-cd-backend';
 
 import { createRouter } from '@roadiehq/backstage-plugin-argo-cd-backend';
 import { PluginEnvironment } from '../types';
-import { ScmIntegrations } from '@backstage/integration';
 import { Writable } from 'stream';
 
 class CaptureLogStream extends Writable {
@@ -130,8 +129,11 @@ async function deleteGithubRepo(options: {
   logger: Logger;
 }) {
   const { config, owner, repo, logger } = options;
+  const githubIntegrations = config.getOptionalConfigArray('integrations.github') ?? [];
   const token =
-    ScmIntegrations.fromConfig(config).byHost('github.com')?.config.token ?? '';
+    githubIntegrations
+      .map(integration => integration.getOptionalString('token'))
+      .find((value): value is string => Boolean(value)) ?? '';
   if (!token) {
     logger.warn(
       'Skipping GitHub cleanup: no github integration token configured in app-config',
@@ -352,7 +354,7 @@ export function createArgoCDApp(options: { config: Config; logger: Logger }) {
         });
       } catch (e) {
         const errorText = e instanceof Error ? e.message : String(e);
-        // GitOps bootstrap 전에 앱을 등록하면 path 검증에서 실패할 수 있어 fallback 처리
+        // If the app is registered before GitOps bootstrap, path validation can fail, so retry with fallback settings.
         if (
           errorText.includes('app path does not exist') ||
           errorText.includes('Unable to generate manifests in')

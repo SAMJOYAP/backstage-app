@@ -8,10 +8,10 @@ on:
 
 env:
   AWS_REGION: ap-northeast-2
-  ECR_REPOSITORY: backstage-app
+  ECR_REPOSITORY: backstage-already11
   GITOPS_REPO: SAMJOYAP/gitops
-  APP_NAME: backstage-kr
-  GITOPS_VALUES_FILE: apps/backstage-kr/values-kr.yaml
+  APP_NAME: backstage-already11
+  GITOPS_VALUES_FILE: apps/backstage-already11/values-already11.yaml
 
 jobs:
   build-push-and-update-gitops:
@@ -69,6 +69,13 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
+      - name: Ensure ECR repository exists
+        shell: bash
+        run: |
+          set -euo pipefail
+          aws ecr describe-repositories --repository-names "${ECR_REPOSITORY}" >/dev/null 2>&1 || \
+            aws ecr create-repository --repository-name "${ECR_REPOSITORY}" >/dev/null
+
       - name: Set image metadata
         id: image
         shell: bash
@@ -99,7 +106,7 @@ jobs:
           ref: main
           path: gitops-repo
 
-      - name: Bootstrap backstage-kr values and manifests
+      - name: Bootstrap backstage-already11 values and manifests
         shell: bash
         run: |
           set -euo pipefail
@@ -122,7 +129,7 @@ jobs:
               echo "  replicas: 1"
               echo "  image:"
               echo "    registry: ghcr.io"
-              echo "    repository: cnoe-io/backstage-app"
+              echo "    repository: cnoe-io/backstage-already11"
               echo "    tag: latest"
               echo "    pullPolicy: IfNotPresent"
               echo "  command: [\"node\", \"packages/backend\"]"
@@ -133,11 +140,11 @@ jobs:
             } > "${APP_DIR}/values.yaml"
           fi
 
-          if [[ ! -f "${APP_DIR}/values-kr.yaml" ]]; then
+          if [[ ! -f "${APP_DIR}/values-already11.yaml" ]]; then
             {
               echo "ingress:"
               echo "  tls:"
-              echo "    secretName: \"backstage-kr-server-tls\""
+              echo "    secretName: \"backstage-already11-server-tls\""
               echo "backstage:"
               echo "  appConfig:"
               echo "    app:"
@@ -148,7 +155,7 @@ jobs:
               echo "    registry: REPLACE_ECR_REGISTRY"
               echo "    repository: REPLACE_ECR_REPOSITORY"
               echo "    tag: REPLACE_ECR_TAG"
-            } > "${APP_DIR}/values-kr.yaml"
+            } > "${APP_DIR}/values-already11.yaml"
           fi
 
           if [[ ! -f "${APP_DIR}/kustomization.yaml" ]]; then
@@ -242,19 +249,19 @@ jobs:
         with:
           token: ${{ secrets.GITOPS_REPO_TOKEN }}
           path: gitops-repo
-          commit-message: "chore(backstage-kr): deploy backstage-app:${{ steps.version.outputs.version }} [skip ci]"
-          title: "chore(backstage-kr): deploy backstage-app:${{ steps.version.outputs.version }}"
+          commit-message: "chore(backstage-already11): deploy backstage-already11:${{ steps.version.outputs.version }} [skip ci]"
+          title: "chore(backstage-already11): deploy backstage-already11:${{ steps.version.outputs.version }}"
           body: |
-            Automated GitOps update for backstage-kr image.
-          branch: chore/cd-update-backstage-kr-image
+            Automated GitOps update for backstage-already11 image.
+          branch: chore/cd-update-backstage-already11-image
           base: main
           delete-branch: true
           add-paths: |
-            apps/backstage-kr/values.yaml
-            apps/backstage-kr/values-kr.yaml
-            apps/backstage-kr/kustomization.yaml
-            apps/backstage-kr/manifests/external-secrets.yaml
-            apps/backstage-kr/manifests/k8s-config-secret.yaml
+            apps/backstage-already11/values.yaml
+            apps/backstage-already11/values-already11.yaml
+            apps/backstage-already11/kustomization.yaml
+            apps/backstage-already11/manifests/external-secrets.yaml
+            apps/backstage-already11/manifests/k8s-config-secret.yaml
 
       - name: Enable auto-merge for GitOps PR
         if: steps.gitops_changes.outputs.changed == 'true' && steps.create_pr.outputs.pull-request-number != ''
