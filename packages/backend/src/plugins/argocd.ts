@@ -129,7 +129,15 @@ async function getEksClusterEndpoint(options: {
   return endpoint;
 }
 
-async function listArgoClusters(options: { baseUrl: string; argoToken: string }) {
+type ArgoClusterRef = {
+  name: string;
+  server: string;
+};
+
+async function listArgoClusters(options: {
+  baseUrl: string;
+  argoToken: string;
+}): Promise<ArgoClusterRef[]> {
   const { baseUrl, argoToken } = options;
   const resp = await fetch(`${baseUrl}/api/v1/clusters`, {
     headers: {
@@ -144,7 +152,7 @@ async function listArgoClusters(options: { baseUrl: string; argoToken: string })
 
   const parsed = await resp.json();
   const items = Array.isArray(parsed?.items) ? parsed.items : [];
-  return items.map((item: any) => ({
+  return items.map((item: any): ArgoClusterRef => ({
     name: item?.name ?? '',
     server: item?.server ?? '',
   }));
@@ -426,7 +434,7 @@ export function createArgoCDApp(options: { config: Config; logger: Logger }) {
           argoToken: token,
         });
         const clusterExists = argoClusters.some(
-          cluster =>
+          (cluster: ArgoClusterRef) =>
             cluster.server === endpoint ||
             cluster.name === destinationEksClusterName,
         );
