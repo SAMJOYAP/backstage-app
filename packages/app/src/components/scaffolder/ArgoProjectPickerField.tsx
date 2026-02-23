@@ -84,7 +84,7 @@ export const ArgoProjectPickerField = (
     error ??
     (rawErrors?.length
       ? rawErrors.join(', ')
-      : `Argo Instance: ${argoInstance}의 Project 목록`);
+      : `${argoInstance} Argo Instance의 Project 목록입니다.`);
 
   return (
     <FormControl

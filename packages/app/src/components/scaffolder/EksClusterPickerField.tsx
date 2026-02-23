@@ -77,7 +77,9 @@ export const EksClusterPickerField = (
   const hasErrors = Boolean(rawErrors?.length) || Boolean(error);
   const helperText =
     error ??
-    (rawErrors?.length ? rawErrors.join(', ') : `Region: ${region}의 EKS 클러스터 목록`);
+    (rawErrors?.length
+      ? rawErrors.join(', ')
+      : `${region} 리전의 EKS 클러스터 목록입니다.`);
 
   return (
     <FormControl
@@ -111,4 +113,3 @@ export const EksClusterPickerField = (
     </FormControl>
   );
 };
-
