@@ -28,12 +28,16 @@ import WidgetsIcon from '@material-ui/icons/Widgets';
 import BlurOnIcon from '@material-ui/icons/BlurOn';
 import UserIcon from '@material-ui/icons/AccountCircle';
 
-const useStyles = makeStyles({
+const useStyles = makeStyles(theme => ({
   card: {
     height: 280,
     borderTop: '4px solid var(--template-color)',
     borderRadius: 12,
-    boxShadow: '0 6px 16px rgba(15, 23, 42, 0.08)',
+    boxShadow:
+      theme.palette.type === 'dark'
+        ? '0 8px 20px rgba(0, 0, 0, 0.45)'
+        : '0 6px 16px rgba(15, 23, 42, 0.08)',
+    backgroundColor: theme.palette.background.paper,
   },
   content: {
     display: 'flex',
@@ -67,14 +71,14 @@ const useStyles = makeStyles({
   title: {
     fontWeight: 700,
     lineHeight: 1.35,
-    color: '#0f172a',
+    color: theme.palette.text.primary,
     display: '-webkit-box',
     WebkitLineClamp: 2,
     WebkitBoxOrient: 'vertical',
     overflow: 'hidden',
   },
   description: {
-    color: '#334155',
+    color: theme.palette.text.secondary,
     display: '-webkit-box',
     WebkitLineClamp: 3,
     WebkitBoxOrient: 'vertical',
@@ -93,15 +97,15 @@ const useStyles = makeStyles({
     display: 'flex',
     alignItems: 'center',
     gap: 6,
-    color: '#334155',
+    color: theme.palette.text.secondary,
     minHeight: 22,
     fontSize: 13,
   },
   favoriteWrap: {
     marginTop: -2,
-    color: '#64748b',
+    color: theme.palette.text.secondary,
   },
-});
+}));
 
 const iconMap = {
   nodejs: CodeIcon,
@@ -185,6 +189,10 @@ export const TemplateStackCard = ({
   const description = template.metadata.description ?? '템플릿 설명이 없습니다.';
   const ownerRefs = getEntityRelations(template, RELATION_OWNED_BY);
   const templateType = template.spec.type ?? 'template';
+  const typeChipColor =
+    templateType === 'infrastructure' ? '#0891B2' : '#16A34A';
+  const typeChipBg =
+    templateType === 'infrastructure' ? '#0891B222' : '#16A34A22';
 
   return (
     <Card
@@ -208,7 +216,17 @@ export const TemplateStackCard = ({
               <Typography variant="h6" className={classes.title}>
                 {title}
               </Typography>
-              <Box className={classes.favoriteWrap}>
+              <Box
+                className={classes.favoriteWrap}
+                onMouseDown={event => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                }}
+                onClick={event => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                }}
+              >
                 <FavoriteEntity entity={template} style={{ padding: 0 }} />
               </Box>
             </Box>
@@ -225,7 +243,7 @@ export const TemplateStackCard = ({
             <Chip
               size="small"
               label={templateType}
-              style={{ backgroundColor: '#E2E8F0', color: '#334155' }}
+              style={{ backgroundColor: typeChipBg, color: typeChipColor }}
             />
           </Box>
           <Box className={classes.ownerRow}>
