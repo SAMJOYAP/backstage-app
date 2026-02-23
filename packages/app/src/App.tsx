@@ -52,6 +52,7 @@ import {
 import { TerraformPluginPage } from '@internal/plugin-terraform';
 import { EksClusterPickerField } from './components/scaffolder/EksClusterPickerField';
 import { ArgoProjectPickerField } from './components/scaffolder/ArgoProjectPickerField';
+import { DefaultNamespaceField } from './components/scaffolder/DefaultNamespaceField';
 
 const EksClusterPickerFieldExtension = scaffolderPlugin.provide(
   createScaffolderFieldExtension({
@@ -64,6 +65,13 @@ const ArgoProjectPickerFieldExtension = scaffolderPlugin.provide(
   createScaffolderFieldExtension({
     name: 'ArgoProjectPicker',
     component: ArgoProjectPickerField,
+  }),
+);
+
+const DefaultNamespaceFieldExtension = scaffolderPlugin.provide(
+  createScaffolderFieldExtension({
+    name: 'DefaultNamespace',
+    component: DefaultNamespaceField,
   }),
 );
 
@@ -154,6 +162,7 @@ const routes = (
           <ScaffolderFieldExtensions>
             <EksClusterPickerFieldExtension />
             <ArgoProjectPickerFieldExtension />
+            <DefaultNamespaceFieldExtension />
           </ScaffolderFieldExtensions>
         </ScaffolderPage>
       }
@@ -191,4 +200,3 @@ export default app.createRoot(
     </AppRouter>
   </>,
 );
-
