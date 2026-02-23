@@ -115,7 +115,10 @@ async function getEksClusterConnectionInfo(options: {
     '  echo "aws cli is not installed in backend pod";',
     '  exit 1;',
     'fi',
-    `aws eks describe-cluster --name "${clusterName}" --region "${region}" --output json`,
+    `ENDPOINT=$(aws eks describe-cluster --name "${clusterName}" --region "${region}" --query 'cluster.endpoint' --output text)`,
+    `CA_DATA=$(aws eks describe-cluster --name "${clusterName}" --region "${region}" --query 'cluster.certificateAuthority.data' --output text)`,
+    'echo "ENDPOINT=${ENDPOINT}"',
+    'echo "CA_DATA=${CA_DATA}"',
   ].join('\n');
 
   await executeShellCommand({
@@ -125,26 +128,25 @@ async function getEksClusterConnectionInfo(options: {
   });
 
   const raw = logStream.data.trim();
-  const jsonText = raw
+  const endpointLine = raw
     .split('\n')
-    .filter(line => line.trim().startsWith('{') || line.includes('"cluster"'))
-    .join('\n') || raw;
-  const parsed = JSON.parse(jsonText) as {
-    cluster?: {
-      endpoint?: string;
-      certificateAuthority?: { data?: string };
-    };
-  };
-  const endpoint = parsed.cluster?.endpoint ?? '';
-  const caData = parsed.cluster?.certificateAuthority?.data ?? '';
+    .find(line => line.trim().startsWith('ENDPOINT='));
+  const caLine = raw.split('\n').find(line => line.trim().startsWith('CA_DATA='));
+  const endpoint = endpointLine?.replace(/^ENDPOINT=/, '').trim() ?? '';
+  const caData = caLine?.replace(/^CA_DATA=/, '').trim() ?? '';
+
+  const invalidCa =
+    !caData ||
+    caData.toLowerCase() === 'none' ||
+    caData.toLowerCase() === 'null';
   if (!endpoint.startsWith('https://')) {
     throw new Error(
-      `Unable to resolve endpoint for EKS cluster "${clusterName}" in region "${region}"`,
+      `Unable to resolve endpoint for EKS cluster "${clusterName}" in region "${region}". Raw output: ${raw}`,
     );
   }
-  if (!caData) {
+  if (invalidCa) {
     throw new Error(
-      `Unable to resolve certificateAuthority for EKS cluster "${clusterName}" in region "${region}"`,
+      `Unable to resolve certificateAuthority for EKS cluster "${clusterName}" in region "${region}". Raw output: ${raw}`,
     );
   }
 
