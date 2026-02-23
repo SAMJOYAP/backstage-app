@@ -120,3 +120,64 @@
     1. Argo CD Application 삭제
     2. GitHub Repository 삭제(토큰 설정 시)
     3. ECR Repository 삭제(best-effort, AWS CLI/권한 필요)
+
+---
+
+## 최신 상태 (2026-02-23)
+
+### 1) 운영 전환 기준 확정
+
+- `backstage-kr`에서 `backstage-already11` 기준으로 운영 전환을 완료했다.
+- GitOps 배포 경로는 `apps/backstage-already11`를 단일 기준으로 유지한다.
+
+### 2) Keycloak 로그인 오류(`Invalid parameter: redirect_uri`) 원인
+
+증상:
+- `https://bs.sesac.already11.cloud`에서 Keycloak 로그인 버튼 클릭 시 오류 페이지 노출
+
+핵심 원인:
+- Keycloak client의 `Valid Redirect URIs`/`Web Origins`와 Backstage 실제 접근 도메인 불일치
+
+운영 체크 포인트:
+1. Keycloak client Redirect URI에 `https://bs.sesac.already11.cloud/*` 포함
+2. Keycloak client Web Origins에 `https://bs.sesac.already11.cloud` 포함
+3. Backstage auth 설정(`app.baseUrl`, provider redirect URL)이 동일 도메인 기준인지 확인
+4. Ingress host/path와 Backstage 공개 URL 일치 여부 점검
+
+### 3) 템플릿 화면 미반영 이슈와의 관계
+
+- 템플릿 한글화/기능(EKS picker)이 소스에는 반영돼도,
+  실행 중인 Backstage가 다른 catalog source를 읽으면 UI에 나타나지 않는다.
+- 따라서 운영 배포 시점에 `APP_CONFIG_*` 기반 catalog location 오버라이드가 필수다.
+
+---
+
+## 최신 상태 (2026-02-23 저녁) - 템플릿 자동 반영 인증 연동
+
+### 1) BACKSTAGE_API_TOKEN 기반 외부 호출 인증 추가
+
+목적:
+- `reference-implementation-aws`의 템플릿 자동 반영 워크플로우가
+  Backstage Catalog API를 인증 포함으로 안정 호출하도록 구성
+
+반영:
+- GitOps `values.yaml`의 `backstage.appConfig.backend.auth.externalAccess`에
+  static token 기반 외부 액세스 허용 추가
+- GitOps `external-secrets.yaml`에 `BACKSTAGE_API_TOKEN` 주입 키 추가
+- `keycloak` 네임스페이스의 `keycloak-clients` secret에 동일 키/값 반영
+
+### 2) 적용 중 장애 및 복구 기록
+
+증상:
+- 신규 파드에서 `password authentication failed for user "backstage"`
+
+원인:
+- `backstage-env-vars` 재생성 과정에서 `POSTGRES_PASSWORD` 값 변경
+
+복구:
+- PostgreSQL 사용자(`backstage`) 비밀번호를 현재 secret 값으로 재동기화
+- 실패 파드 재생성 후 정상화
+
+최종 상태:
+- `backstage-already11` Deployment 정상(1/1)
+- Catalog API 토큰 기반 자동 반영 경로 사용 가능
