@@ -5,6 +5,7 @@ import { FormControl, FormHelperText, InputLabel, MenuItem, Select } from '@mate
 
 type UiOptions = {
   region?: string;
+  hubClusterName?: string;
 };
 
 type ClusterItem = {
@@ -36,6 +37,8 @@ export const EksClusterPickerField = (
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>();
   const region = uiSchema['ui:options']?.region ?? 'ap-northeast-2';
+  const hubClusterName =
+    uiSchema['ui:options']?.hubClusterName ?? 'sesac-ref-impl';
 
   useEffect(() => {
     let mounted = true;
@@ -105,7 +108,9 @@ export const EksClusterPickerField = (
             key={`${cluster.region}:${cluster.name}`}
             value={cluster.name}
           >
-            {cluster.name} ({cluster.region})
+            {cluster.name === hubClusterName
+              ? `${cluster.name} (허브 클러스터, ${cluster.region})`
+              : `${cluster.name} (${cluster.region})`}
           </MenuItem>
         ))}
       </Select>

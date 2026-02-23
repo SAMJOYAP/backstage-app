@@ -98,10 +98,15 @@ async function createArgoApplicationWithoutPathValidation(options: {
   }
 }
 
-async function getEksClusterEndpoint(options: {
+type EksClusterConnectionInfo = {
+  endpoint: string;
+  caData: string;
+};
+
+async function getEksClusterConnectionInfo(options: {
   clusterName: string;
   region: string;
-}) {
+}): Promise<EksClusterConnectionInfo> {
   const { clusterName, region } = options;
   const logStream = new CaptureLogStream();
 
@@ -110,7 +115,7 @@ async function getEksClusterEndpoint(options: {
     '  echo "aws cli is not installed in backend pod";',
     '  exit 1;',
     'fi',
-    `aws eks describe-cluster --name "${clusterName}" --region "${region}" --query "cluster.endpoint" --output text`,
+    `aws eks describe-cluster --name "${clusterName}" --region "${region}" --output json`,
   ].join('\n');
 
   await executeShellCommand({
@@ -119,14 +124,31 @@ async function getEksClusterEndpoint(options: {
     logStream,
   });
 
-  const endpoint = logStream.data.trim().split('\n').pop()?.trim() ?? '';
+  const raw = logStream.data.trim();
+  const jsonText = raw
+    .split('\n')
+    .filter(line => line.trim().startsWith('{') || line.includes('"cluster"'))
+    .join('\n') || raw;
+  const parsed = JSON.parse(jsonText) as {
+    cluster?: {
+      endpoint?: string;
+      certificateAuthority?: { data?: string };
+    };
+  };
+  const endpoint = parsed.cluster?.endpoint ?? '';
+  const caData = parsed.cluster?.certificateAuthority?.data ?? '';
   if (!endpoint.startsWith('https://')) {
     throw new Error(
       `Unable to resolve endpoint for EKS cluster "${clusterName}" in region "${region}"`,
     );
   }
+  if (!caData) {
+    throw new Error(
+      `Unable to resolve certificateAuthority for EKS cluster "${clusterName}" in region "${region}"`,
+    );
+  }
 
-  return endpoint;
+  return { endpoint, caData };
 }
 
 type ArgoClusterRef = {
@@ -207,6 +229,46 @@ async function argoApplicationExists(options: {
     throw new Error(`Failed to check Argo CD application existence: ${body}`);
   }
   return true;
+}
+
+async function registerArgoEksCluster(options: {
+  baseUrl: string;
+  argoToken: string;
+  clusterName: string;
+  endpoint: string;
+  caData: string;
+}): Promise<void> {
+  const { baseUrl, argoToken, clusterName, endpoint, caData } = options;
+  const payload = {
+    name: clusterName,
+    server: endpoint,
+    config: {
+      tlsClientConfig: {
+        insecure: false,
+        caData,
+      },
+      awsAuthConfig: {
+        clusterName,
+      },
+    },
+  };
+
+  const resp = await fetch(`${baseUrl}/api/v1/clusters`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${argoToken}`,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (resp.status === 409) {
+    return;
+  }
+  if (!resp.ok) {
+    const body = await resp.text();
+    throw new Error(`Failed to register EKS cluster in Argo CD: ${body}`);
+  }
 }
 
 async function deleteArgoApplication(options: {
@@ -478,6 +540,8 @@ export function createArgoCDApp(options: { config: Config; logger: Logger }) {
       const resolvedLabelValue = labelValue ? labelValue : appName;
       const shouldCleanup = cleanupOnFailure ?? true;
       const validateOnly = preflightOnly ?? false;
+      const hubClusterName =
+        config.getOptionalString('aws.eks.hubClusterName') ?? 'sesac-ref-impl';
       let resolvedDestinationServer =
         destinationServer ?? 'https://kubernetes.default.svc';
 
@@ -505,26 +569,51 @@ export function createArgoCDApp(options: { config: Config; logger: Logger }) {
       }
 
       if (destinationEksClusterName) {
-        const region = destinationEksClusterRegion ?? 'ap-northeast-2';
-        const endpoint = await getEksClusterEndpoint({
-          clusterName: destinationEksClusterName,
-          region,
-        });
-        const argoClusters = await listArgoClusters({
-          baseUrl: matchedArgoInstance.url,
-          argoToken: token,
-        });
-        const clusterExists = argoClusters.some(
-          (cluster: ArgoClusterRef) =>
-            cluster.server === endpoint ||
-            cluster.name === destinationEksClusterName,
-        );
-        if (!clusterExists) {
-          throw new Error(
-            `Selected EKS cluster "${destinationEksClusterName}" (${endpoint}) is not registered in Argo CD instance "${argoInstance}". Register this EKS cluster in Argo CD before template execution.`,
+        if (destinationEksClusterName === hubClusterName) {
+          resolvedDestinationServer = 'https://kubernetes.default.svc';
+        } else {
+          const region = destinationEksClusterRegion ?? 'ap-northeast-2';
+          const { endpoint, caData } = await getEksClusterConnectionInfo({
+            clusterName: destinationEksClusterName,
+            region,
+          });
+          const argoClusters = await listArgoClusters({
+            baseUrl: matchedArgoInstance.url,
+            argoToken: token,
+          });
+          const clusterExists = argoClusters.some(
+            (cluster: ArgoClusterRef) =>
+              cluster.server === endpoint ||
+              cluster.name === destinationEksClusterName,
           );
+          if (!clusterExists) {
+            ctx.logger.info(
+              `Argo CD cluster registration not found for "${destinationEksClusterName}". Trying auto-register.`,
+            );
+            await registerArgoEksCluster({
+              baseUrl: matchedArgoInstance.url,
+              argoToken: token,
+              clusterName: destinationEksClusterName,
+              endpoint,
+              caData,
+            });
+            const refreshedClusters = await listArgoClusters({
+              baseUrl: matchedArgoInstance.url,
+              argoToken: token,
+            });
+            const existsAfterRegister = refreshedClusters.some(
+              (cluster: ArgoClusterRef) =>
+                cluster.server === endpoint ||
+                cluster.name === destinationEksClusterName,
+            );
+            if (!existsAfterRegister) {
+              throw new Error(
+                `EKS cluster "${destinationEksClusterName}" registration in Argo CD did not complete. Check Argo CD permissions/cluster auth settings.`,
+              );
+            }
+          }
+          resolvedDestinationServer = endpoint;
         }
-        resolvedDestinationServer = endpoint;
       }
 
       if (validateOnly) {
