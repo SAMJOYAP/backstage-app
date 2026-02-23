@@ -30,14 +30,17 @@ import UserIcon from '@material-ui/icons/AccountCircle';
 
 const useStyles = makeStyles({
   card: {
-    height: '100%',
+    height: 280,
     borderTop: '4px solid var(--template-color)',
+    borderRadius: 12,
+    boxShadow: '0 6px 16px rgba(15, 23, 42, 0.08)',
   },
   content: {
     display: 'flex',
     flexDirection: 'column',
-    gap: 10,
-    minHeight: 190,
+    gap: 12,
+    height: 276,
+    padding: '16px 16px 14px 16px',
   },
   topRow: {
     display: 'flex',
@@ -63,30 +66,40 @@ const useStyles = makeStyles({
   },
   title: {
     fontWeight: 700,
-    lineHeight: 1.3,
+    lineHeight: 1.35,
+    color: '#0f172a',
+    display: '-webkit-box',
+    WebkitLineClamp: 2,
+    WebkitBoxOrient: 'vertical',
+    overflow: 'hidden',
   },
   description: {
-    color: '#64748b',
+    color: '#334155',
     display: '-webkit-box',
     WebkitLineClamp: 3,
     WebkitBoxOrient: 'vertical',
     overflow: 'hidden',
-    minHeight: 58,
+    lineHeight: 1.5,
+    minHeight: 66,
+    maxHeight: 66,
   },
   chipRow: {
     display: 'flex',
     gap: 8,
     flexWrap: 'wrap',
+    marginTop: 'auto',
   },
   ownerRow: {
     display: 'flex',
     alignItems: 'center',
     gap: 6,
-    color: '#475569',
+    color: '#334155',
     minHeight: 22,
+    fontSize: 13,
   },
   favoriteWrap: {
     marginTop: -2,
+    color: '#64748b',
   },
 });
 
