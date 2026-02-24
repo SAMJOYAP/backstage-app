@@ -103,23 +103,26 @@ const useStyles = makeStyles(theme => ({
   },
 }));
 
+const awsLogoDataUri =
+  "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='10' fill='%23FF9900'/><text x='32' y='39' text-anchor='middle' font-family='Arial,sans-serif' font-size='24' font-weight='700' fill='white'>aws</text></svg>";
+
 const logoMap: Record<string, { src: string; alt: string }> = {
   nodejs: { src: 'https://cdn.simpleicons.org/nodedotjs', alt: 'Node.js' },
   java: { src: 'https://cdn.simpleicons.org/openjdk', alt: 'Java' },
-  eks: { src: 'https://cdn.simpleicons.org/amazonaws', alt: 'Amazon EKS' },
-  ec2: { src: 'https://cdn.simpleicons.org/amazonaws', alt: 'Amazon EC2' },
-  rds: { src: 'https://cdn.simpleicons.org/amazonaws', alt: 'Amazon RDS' },
+  eks: { src: awsLogoDataUri, alt: 'Amazon EKS' },
+  ec2: { src: awsLogoDataUri, alt: 'Amazon EC2' },
+  rds: { src: awsLogoDataUri, alt: 'Amazon RDS' },
   dynamodb: {
-    src: 'https://cdn.simpleicons.org/amazonaws',
+    src: awsLogoDataUri,
     alt: 'Amazon DynamoDB',
   },
-  s3: { src: 'https://cdn.simpleicons.org/amazonaws', alt: 'Amazon S3' },
+  s3: { src: awsLogoDataUri, alt: 'Amazon S3' },
   elasticache: {
-    src: 'https://cdn.simpleicons.org/amazonaws',
+    src: awsLogoDataUri,
     alt: 'Amazon ElastiCache',
   },
   datapipeline: {
-    src: 'https://cdn.simpleicons.org/awslambda',
+    src: awsLogoDataUri,
     alt: 'AWS Data Pipeline',
   },
   golang: { src: 'https://cdn.simpleicons.org/go', alt: 'Go' },
