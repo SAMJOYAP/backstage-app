@@ -103,42 +103,31 @@ const useStyles = makeStyles(theme => ({
   },
 }));
 
-const toDataUri = (text: string, bg: string) =>
-  `data:image/svg+xml;utf8,${encodeURIComponent(
-    `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='10' fill='${bg}'/><text x='32' y='39' text-anchor='middle' font-family='Arial,sans-serif' font-size='18' font-weight='700' fill='white'>${text}</text></svg>`,
-  )}`;
-
-const awsLogoDataUri = toDataUri('AWS', '#FF9900');
-const javaLogoDataUri = toDataUri('Java', '#f59e0b');
-const nodeLogoDataUri = toDataUri('Node', '#3C873A');
-const goLogoDataUri = toDataUri('Go', '#00ADD8');
-const argoLogoDataUri = toDataUri('Argo', '#ef7b4d');
-const kubeLogoDataUri = toDataUri('K8s', '#326ce5');
-const rayLogoDataUri = toDataUri('Ray', '#7C3AED');
+const awsOfficialLogo = 'https://a0.awsstatic.com/libra-css/images/logos/aws_logo_smile_1200x630.png';
 
 const logoMap: Record<string, { src: string; alt: string }> = {
-  nodejs: { src: nodeLogoDataUri, alt: 'Node.js' },
-  java: { src: javaLogoDataUri, alt: 'Java' },
-  eks: { src: awsLogoDataUri, alt: 'Amazon EKS' },
-  ec2: { src: awsLogoDataUri, alt: 'Amazon EC2' },
-  rds: { src: awsLogoDataUri, alt: 'Amazon RDS' },
+  nodejs: { src: 'https://cdn.simpleicons.org/nodedotjs', alt: 'Node.js' },
+  java: { src: 'https://cdn.simpleicons.org/openjdk', alt: 'Java' },
+  eks: { src: awsOfficialLogo, alt: 'Amazon EKS' },
+  ec2: { src: awsOfficialLogo, alt: 'Amazon EC2' },
+  rds: { src: awsOfficialLogo, alt: 'Amazon RDS' },
   dynamodb: {
-    src: awsLogoDataUri,
+    src: awsOfficialLogo,
     alt: 'Amazon DynamoDB',
   },
-  s3: { src: awsLogoDataUri, alt: 'Amazon S3' },
+  s3: { src: awsOfficialLogo, alt: 'Amazon S3' },
   elasticache: {
-    src: awsLogoDataUri,
+    src: awsOfficialLogo,
     alt: 'Amazon ElastiCache',
   },
   datapipeline: {
-    src: awsLogoDataUri,
+    src: awsOfficialLogo,
     alt: 'AWS Data Pipeline',
   },
-  golang: { src: goLogoDataUri, alt: 'Go' },
-  workflow: { src: argoLogoDataUri, alt: 'Argo Workflows' },
-  kubernetes: { src: kubeLogoDataUri, alt: 'Kubernetes' },
-  ray: { src: rayLogoDataUri, alt: 'Ray' },
+  golang: { src: 'https://cdn.simpleicons.org/go', alt: 'Go' },
+  workflow: { src: 'https://cdn.simpleicons.org/argo', alt: 'Argo Workflows' },
+  kubernetes: { src: 'https://cdn.simpleicons.org/kubernetes', alt: 'Kubernetes' },
+  ray: { src: 'https://cdn.simpleicons.org/ray', alt: 'Ray' },
 } as const;
 
 const fallbackTemplateMeta: Record<
