@@ -15,17 +15,7 @@ import {
 import { makeStyles } from '@material-ui/core/styles';
 import { Link as RouterLink } from 'react-router-dom';
 import AppsIcon from '@material-ui/icons/Apps';
-import CodeIcon from '@material-ui/icons/Code';
-import MemoryIcon from '@material-ui/icons/Memory';
-import AccountTreeIcon from '@material-ui/icons/AccountTree';
-import DeveloperBoardIcon from '@material-ui/icons/DeveloperBoard';
 import StorageIcon from '@material-ui/icons/Storage';
-import FolderIcon from '@material-ui/icons/Folder';
-import FlashOnIcon from '@material-ui/icons/FlashOn';
-import TimelineIcon from '@material-ui/icons/Timeline';
-import DeviceHubIcon from '@material-ui/icons/DeviceHub';
-import WidgetsIcon from '@material-ui/icons/Widgets';
-import BlurOnIcon from '@material-ui/icons/BlurOn';
 import UserIcon from '@material-ui/icons/AccountCircle';
 
 const useStyles = makeStyles(theme => ({
@@ -65,8 +55,14 @@ const useStyles = makeStyles(theme => ({
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    color: '#ffffff',
-    backgroundColor: 'var(--template-color)',
+    color: 'var(--template-color)',
+    backgroundColor: '#ffffff',
+    border: '1px solid #e2e8f0',
+  },
+  iconImage: {
+    width: 22,
+    height: 22,
+    objectFit: 'contain',
   },
   title: {
     fontWeight: 700,
@@ -107,25 +103,34 @@ const useStyles = makeStyles(theme => ({
   },
 }));
 
-const iconMap = {
-  nodejs: CodeIcon,
-  java: MemoryIcon,
-  eks: AccountTreeIcon,
-  ec2: DeveloperBoardIcon,
-  rds: StorageIcon,
-  dynamodb: StorageIcon,
-  s3: FolderIcon,
-  elasticache: FlashOnIcon,
-  datapipeline: TimelineIcon,
-  golang: CodeIcon,
-  workflow: DeviceHubIcon,
-  kubernetes: WidgetsIcon,
-  ray: BlurOnIcon,
+const logoMap: Record<string, { src: string; alt: string }> = {
+  nodejs: { src: 'https://cdn.simpleicons.org/nodedotjs', alt: 'Node.js' },
+  java: { src: 'https://cdn.simpleicons.org/openjdk', alt: 'Java' },
+  eks: { src: 'https://cdn.simpleicons.org/amazoneks', alt: 'Amazon EKS' },
+  ec2: { src: 'https://cdn.simpleicons.org/amazonec2', alt: 'Amazon EC2' },
+  rds: { src: 'https://cdn.simpleicons.org/amazonrds', alt: 'Amazon RDS' },
+  dynamodb: {
+    src: 'https://cdn.simpleicons.org/amazondynamodb',
+    alt: 'Amazon DynamoDB',
+  },
+  s3: { src: 'https://cdn.simpleicons.org/amazons3', alt: 'Amazon S3' },
+  elasticache: {
+    src: 'https://cdn.simpleicons.org/amazonelasticache',
+    alt: 'Amazon ElastiCache',
+  },
+  datapipeline: {
+    src: 'https://cdn.simpleicons.org/awslambda',
+    alt: 'AWS Data Pipeline',
+  },
+  golang: { src: 'https://cdn.simpleicons.org/go', alt: 'Go' },
+  workflow: { src: 'https://cdn.simpleicons.org/argo', alt: 'Argo Workflows' },
+  kubernetes: { src: 'https://cdn.simpleicons.org/kubernetes', alt: 'Kubernetes' },
+  ray: { src: 'https://cdn.simpleicons.org/ray', alt: 'Ray' },
 } as const;
 
 const fallbackTemplateMeta: Record<
   string,
-  { icon: keyof typeof iconMap; color: string; stack: string }
+  { icon: keyof typeof logoMap; color: string; stack: string }
 > = {
   'nodejs-nginx-webapp': { icon: 'nodejs', color: '#3C873A', stack: 'Node.js' },
   'springboot-gradle-apache': { icon: 'java', color: '#EA6A47', stack: 'Java' },
@@ -180,9 +185,8 @@ export const TemplateStackCard = ({
     fallback?.stack ??
     'Template';
 
-  const Icon =
-    iconMap[iconKey as keyof typeof iconMap] ??
-    (template.spec.type === 'infrastructure' ? StorageIcon : AppsIcon);
+  const logo = logoMap[iconKey as keyof typeof logoMap];
+  const Icon = template.spec.type === 'infrastructure' ? StorageIcon : AppsIcon;
 
   const namespace = template.metadata.namespace ?? 'default';
   const title = template.metadata.title ?? template.metadata.name;
@@ -210,7 +214,16 @@ export const TemplateStackCard = ({
         <CardContent className={classes.content}>
           <Box className={classes.topRow}>
             <Box className={classes.iconWrap}>
-              <Icon fontSize="small" />
+              {logo ? (
+                <img
+                  src={logo.src}
+                  alt={logo.alt}
+                  className={classes.iconImage}
+                  loading="lazy"
+                />
+              ) : (
+                <Icon fontSize="small" />
+              )}
             </Box>
             <Box className={classes.titleRow}>
               <Typography variant="h6" className={classes.title}>
