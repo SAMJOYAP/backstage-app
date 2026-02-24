@@ -241,6 +241,19 @@
 - 운영 권장:
   - 조직(Organization) secret으로 중앙 관리
   - 대상 레포 visibility를 `gitops` 포함 범위로 제한
+
+### 3) 신규 앱 도메인 접속 이슈 운영 메모 (`java-sec-test`)
+
+- 상황:
+  - 배포 리소스는 정상인데 신규 앱 도메인 HTTPS 접속 실패 발생
+- 확인 결과:
+  - Route53 레코드는 존재
+  - cert-manager HTTP-01 self-check에서 내부 DNS(`coredns`)가 `NXDOMAIN` 반환
+- 처리:
+  - `kube-system/coredns` rollout restart
+  - cert-manager 재시도 후 인증서 `Ready=True` 전환
+- 결론:
+  - 신규 앱 도메인 장애 분석 시, Ingress 상태뿐 아니라 CoreDNS 해석 상태를 함께 확인 필요
 - `cnoe:create-argocd-app` preflight 검증 강화
   - 선택한 Argo Project 존재 여부 확인
   - 선택한 EKS Cluster가 Argo CD destination cluster로 등록되어 있는지 확인
