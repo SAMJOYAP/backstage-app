@@ -218,6 +218,29 @@
 
 - `ArgoProjectPicker` 필드 확장 추가
   - 실행 시점 Argo CD 프로젝트 목록을 조회해 선택 가능
+
+---
+
+## 최신 상태 (2026-02-24) - Argo 토큰/정리 자동화 연계
+
+### 1) Argo CD API 토큰 발급 전제
+
+- 증상:
+  - `account 'admin' does not have apiKey capability`
+- 조치:
+  - `argocd-cm`에 `accounts.admin: apiKey,login` 반영
+  - `argocd-server` rollout restart 수행
+- 결과:
+  - `Settings > Accounts > admin`에서 토큰 발급 가능 상태 확보
+
+### 2) GitOps orphan cleanup와 연동되는 시크릿 정리
+
+- cleanup 파이프라인에서 사용하는 Argo 시크릿:
+  - `ARGOCD_SERVER` (값 형식: `sesac.already11.cloud/argocd`)
+  - `ARGOCD_AUTH_TOKEN` (Argo UI/CLI 발급 토큰)
+- 운영 권장:
+  - 조직(Organization) secret으로 중앙 관리
+  - 대상 레포 visibility를 `gitops` 포함 범위로 제한
 - `cnoe:create-argocd-app` preflight 검증 강화
   - 선택한 Argo Project 존재 여부 확인
   - 선택한 EKS Cluster가 Argo CD destination cluster로 등록되어 있는지 확인
