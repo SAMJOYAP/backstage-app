@@ -254,6 +254,14 @@
   - cert-manager 재시도 후 인증서 `Ready=True` 전환
 - 결론:
   - 신규 앱 도메인 장애 분석 시, Ingress 상태뿐 아니라 CoreDNS 해석 상태를 함께 확인 필요
+
+### 4) 보안 파이프라인 운영 기준 동기화
+
+- SpringBoot Maven 보안 파이프라인 기준 재확인:
+  - Trivy `HIGH/CRITICAL` 모두 차단
+  - Cosign verify는 strict 실패 기준 유지
+- 운영 관점:
+  - 배포 실패 시 워크플로우 완화보다 IAM/RBAC/권한 정합성 우선 보정
 - `cnoe:create-argocd-app` preflight 검증 강화
   - 선택한 Argo Project 존재 여부 확인
   - 선택한 EKS Cluster가 Argo CD destination cluster로 등록되어 있는지 확인
