@@ -106,16 +106,16 @@ const useStyles = makeStyles(theme => ({
 const logoMap: Record<string, { src: string; alt: string }> = {
   nodejs: { src: 'https://cdn.simpleicons.org/nodedotjs', alt: 'Node.js' },
   java: { src: 'https://cdn.simpleicons.org/openjdk', alt: 'Java' },
-  eks: { src: 'https://cdn.simpleicons.org/amazoneks', alt: 'Amazon EKS' },
-  ec2: { src: 'https://cdn.simpleicons.org/amazonec2', alt: 'Amazon EC2' },
-  rds: { src: 'https://cdn.simpleicons.org/amazonrds', alt: 'Amazon RDS' },
+  eks: { src: 'https://cdn.simpleicons.org/amazonaws', alt: 'Amazon EKS' },
+  ec2: { src: 'https://cdn.simpleicons.org/amazonaws', alt: 'Amazon EC2' },
+  rds: { src: 'https://cdn.simpleicons.org/amazonaws', alt: 'Amazon RDS' },
   dynamodb: {
-    src: 'https://cdn.simpleicons.org/amazondynamodb',
+    src: 'https://cdn.simpleicons.org/amazonaws',
     alt: 'Amazon DynamoDB',
   },
-  s3: { src: 'https://cdn.simpleicons.org/amazons3', alt: 'Amazon S3' },
+  s3: { src: 'https://cdn.simpleicons.org/amazonaws', alt: 'Amazon S3' },
   elasticache: {
-    src: 'https://cdn.simpleicons.org/amazonelasticache',
+    src: 'https://cdn.simpleicons.org/amazonaws',
     alt: 'Amazon ElastiCache',
   },
   datapipeline: {
