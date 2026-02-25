@@ -385,3 +385,31 @@ g, backstage, role:backstage
 - GitHub Actions의 `cosign sign/verify` 성공은 "파이프라인 단계" 완료를 의미한다.
 - 배포 시점에는 클러스터 정책 엔진(Kyverno)의 별도 재검증이 수행된다.
 - 따라서 운영 장애 분석 시 두 단계를 분리해서 확인해야 한다.
+
+---
+
+## 최신 운영 메모 (2026-02-25 추가 반영)
+
+### 1) ACM 인증서 선택 UX 반영
+
+- 스캐폴더에서 ACM 선택 흐름을 강화했다.
+  - `ACM 인증서 도메인 선택` 시 `선택된 ACM 도메인`/`선택된 ACM ARN`을 동시 표시
+  - 도메인 필터는 `already11.cloud` suffix 기준으로 조회
+- 운영 효과:
+  - 사용자가 실제 선택한 와일드카드 도메인(`*.already11.cloud`)을 UI에서 바로 확인 가능
+
+### 2) 호스트 접두사 입력 가이드 강화
+
+- 접두사 입력 필드(helperText)에 선택한 ACM 도메인을 동적으로 표시하도록 반영
+- 예시:
+  - ACM 도메인 `*.already11.cloud` 선택 시
+  - 접두사 `api` 입력 안내를 `api.already11.cloud` 형태로 표시
+
+### 3) ACM 조회 API 인증 방식 전환 기준
+
+- 증상:
+  - `/api/acm-certificates/certificates` 호출 시 `Missing credentials` 오류 가능
+- 운영 기준:
+  - 장기 Access Key 주입 대신 IRSA 사용
+  - `backstage-already11` ServiceAccount에 IAM Role 연결 후
+    `acm:ListCertificates`(권장: `acm:DescribeCertificate`) 권한 부여
