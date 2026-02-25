@@ -360,3 +360,28 @@ g, backstage, role:backstage
   - 검증 실패 시 repo/ECR 생성 전에 즉시 중단
 
 ---
+
+## 최신 운영 메모 (2026-02-25)
+
+### 1) Argo CD 토큰 권한 체크 포인트
+
+- cleanup/운영 API 호출 시 `session/userinfo`는 통과하지만 `applications delete`가 403일 수 있다.
+- 운영 반영 기준:
+  - `argocd-rbac-cm`에 `admin:apiKey` 주체 매핑 포함
+  - `applications get/list/delete` 권한 명시
+- 메모:
+  - API 토큰 주체(`sub`)가 `admin:apiKey`로 인식되는지 확인 필요
+
+### 2) 비허브 EKS 배포 장애 판별 기준
+
+- Argo 앱이 `Missing`이어도 원인이 Argo RBAC가 아닐 수 있다.
+- 실제 배포 차단은 대상 클러스터 admission 정책(예: Kyverno)에서 발생할 수 있다.
+- 우선순위:
+  1. Argo `describe application` 실패 메시지
+  2. 대상 클러스터 webhook/policy 로그
+
+### 3) 서명 파이프라인과 클러스터 검증의 경계
+
+- GitHub Actions의 `cosign sign/verify` 성공은 "파이프라인 단계" 완료를 의미한다.
+- 배포 시점에는 클러스터 정책 엔진(Kyverno)의 별도 재검증이 수행된다.
+- 따라서 운영 장애 분석 시 두 단계를 분리해서 확인해야 한다.

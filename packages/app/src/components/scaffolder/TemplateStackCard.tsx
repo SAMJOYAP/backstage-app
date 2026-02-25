@@ -49,20 +49,34 @@ const useStyles = makeStyles(theme => ({
     flex: 1,
   },
   iconWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: 8,
+    width: 44,
+    height: 44,
+    borderRadius: 12,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     color: 'var(--template-color)',
-    backgroundColor: '#ffffff',
-    border: '1px solid #e2e8f0',
+    background:
+      theme.palette.type === 'dark'
+        ? 'linear-gradient(180deg, rgba(15, 23, 42, 0.86), rgba(30, 41, 59, 0.9))'
+        : 'linear-gradient(180deg, #ffffff, #f8fafc)',
+    border:
+      theme.palette.type === 'dark'
+        ? '1px solid rgba(148, 163, 184, 0.35)'
+        : '1px solid #dbeafe',
+    boxShadow:
+      theme.palette.type === 'dark'
+        ? '0 4px 12px rgba(2, 6, 23, 0.45)'
+        : '0 4px 12px rgba(15, 23, 42, 0.08)',
   },
   iconImage: {
-    width: 22,
-    height: 22,
+    width: 28,
+    height: 28,
     objectFit: 'contain',
+    filter:
+      theme.palette.type === 'dark'
+        ? 'drop-shadow(0 1px 2px rgba(15, 23, 42, 0.55))'
+        : 'none',
   },
   title: {
     fontWeight: 700,
@@ -103,25 +117,35 @@ const useStyles = makeStyles(theme => ({
   },
 }));
 
-const awsOfficialLogo = 'https://a0.awsstatic.com/libra-css/images/logos/aws_logo_smile_1200x630.png';
+const terraformLogo = 'https://cdn.simpleicons.org/terraform';
 
 const logoMap: Record<string, { src: string; alt: string }> = {
   nodejs: { src: 'https://cdn.simpleicons.org/nodedotjs', alt: 'Node.js' },
-  java: { src: 'https://cdn.simpleicons.org/openjdk', alt: 'Java' },
-  eks: { src: awsOfficialLogo, alt: 'Amazon EKS' },
-  ec2: { src: awsOfficialLogo, alt: 'Amazon EC2' },
-  rds: { src: awsOfficialLogo, alt: 'Amazon RDS' },
+  java: { src: 'https://cdn.simpleicons.org/openjdk', alt: 'OpenJDK' },
+  terraform: { src: terraformLogo, alt: 'Terraform' },
+  eks: {
+    src: 'https://icon.icepanel.io/AWS/svg/Containers/Elastic-Kubernetes-Service.svg',
+    alt: 'Amazon EKS',
+  },
+  ec2: { src: 'https://icon.icepanel.io/AWS/svg/Compute/EC2.svg', alt: 'Amazon EC2' },
+  rds: {
+    src: 'https://icon.icepanel.io/AWS/svg/Database/Relational-Database-Service.svg',
+    alt: 'Amazon RDS',
+  },
   dynamodb: {
-    src: awsOfficialLogo,
+    src: 'https://icon.icepanel.io/AWS/svg/Database/DynamoDB.svg',
     alt: 'Amazon DynamoDB',
   },
-  s3: { src: awsOfficialLogo, alt: 'Amazon S3' },
+  s3: {
+    src: 'https://icon.icepanel.io/AWS/svg/Storage/Simple-Storage-Service.svg',
+    alt: 'Amazon S3',
+  },
   elasticache: {
-    src: awsOfficialLogo,
+    src: 'https://icon.icepanel.io/AWS/svg/Database/ElastiCache.svg',
     alt: 'Amazon ElastiCache',
   },
   datapipeline: {
-    src: awsOfficialLogo,
+    src: terraformLogo,
     alt: 'AWS Data Pipeline',
   },
   golang: { src: 'https://cdn.simpleicons.org/go', alt: 'Go' },
@@ -188,6 +212,7 @@ export const TemplateStackCard = ({
     'Template';
 
   const logo = logoMap[iconKey as keyof typeof logoMap];
+  const [imageLoadFailed, setImageLoadFailed] = React.useState(false);
   const Icon = template.spec.type === 'infrastructure' ? StorageIcon : AppsIcon;
 
   const namespace = template.metadata.namespace ?? 'default';
@@ -216,12 +241,14 @@ export const TemplateStackCard = ({
         <CardContent className={classes.content}>
           <Box className={classes.topRow}>
             <Box className={classes.iconWrap}>
-              {logo ? (
+              {logo && !imageLoadFailed ? (
                 <img
                   src={logo.src}
                   alt={logo.alt}
                   className={classes.iconImage}
                   loading="lazy"
+                  referrerPolicy="no-referrer"
+                  onError={() => setImageLoadFailed(true)}
                 />
               ) : (
                 <Icon fontSize="small" />
