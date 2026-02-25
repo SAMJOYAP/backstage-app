@@ -56,6 +56,7 @@ import { DefaultNamespaceField } from './components/scaffolder/DefaultNamespaceF
 import { TemplateStackCard } from './components/scaffolder/TemplateStackCard';
 import { RepoUrlFromProjectPickerField } from './components/scaffolder/RepoUrlFromProjectPickerField';
 import { DefaultFromProjectTextField } from './components/scaffolder/DefaultFromProjectTextField';
+import { AcmCertificatePickerField } from './components/scaffolder/AcmCertificatePickerField';
 
 const EksClusterPickerFieldExtension = scaffolderPlugin.provide(
   createScaffolderFieldExtension({
@@ -89,6 +90,13 @@ const DefaultFromProjectTextFieldExtension = scaffolderPlugin.provide(
   createScaffolderFieldExtension({
     name: 'DefaultFromProjectText',
     component: DefaultFromProjectTextField,
+  }),
+);
+
+const AcmCertificatePickerFieldExtension = scaffolderPlugin.provide(
+  createScaffolderFieldExtension({
+    name: 'AcmCertificatePicker',
+    component: AcmCertificatePickerField,
   }),
 );
 
@@ -184,6 +192,7 @@ const routes = (
             <DefaultNamespaceFieldExtension />
             <RepoUrlFromProjectPickerFieldExtension />
             <DefaultFromProjectTextFieldExtension />
+            <AcmCertificatePickerFieldExtension />
           </ScaffolderFieldExtensions>
         </ScaffolderPage>
       }
