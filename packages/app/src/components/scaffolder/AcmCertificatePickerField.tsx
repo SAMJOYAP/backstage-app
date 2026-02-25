@@ -11,7 +11,6 @@ import {
   InputLabel,
   MenuItem,
   Select,
-  TextField,
 } from '@material-ui/core';
 
 type UiOptions = {
@@ -23,6 +22,12 @@ type UiOptions = {
 type CertificateItem = {
   arn: string;
   domainName: string;
+};
+
+type CertificateOption = {
+  arn: string;
+  domainName: string;
+  displayDomain: string;
 };
 
 type CertificatesResponse = {
@@ -102,14 +107,59 @@ export const AcmCertificatePickerField = (
     };
   }, [discoveryApi, domainSuffix, fetchApi, region, statusesParam]);
 
-  useEffect(() => {
-    if (!formData && certificates.length > 0) {
-      onChange(certificates[0].arn);
+  const wildcardCertificates = useMemo(() => {
+    const options: CertificateOption[] = [];
+    const seen = new Set<string>();
+
+    for (const certificate of certificates) {
+      const domain = certificate.domainName.trim();
+      if (!domain) {
+        continue;
+      }
+
+      if (domain.startsWith('*.')) {
+        if (!seen.has(certificate.arn)) {
+          options.push({
+            arn: certificate.arn,
+            domainName: certificate.domainName,
+            displayDomain: domain,
+          });
+          seen.add(certificate.arn);
+        }
+        continue;
+      }
+
+      if (domainSuffix && domain.toLowerCase() === domainSuffix.toLowerCase()) {
+        if (!seen.has(certificate.arn)) {
+          options.push({
+            arn: certificate.arn,
+            domainName: certificate.domainName,
+            displayDomain: `*.${domainSuffix}`,
+          });
+          seen.add(certificate.arn);
+        }
+      }
     }
-  }, [certificates, formData, onChange]);
+
+    return options;
+  }, [certificates, domainSuffix]);
+
+  useEffect(() => {
+    if (!formData && wildcardCertificates.length > 0) {
+      onChange(wildcardCertificates[0].arn);
+    }
+  }, [formData, onChange, wildcardCertificates]);
+
+  useEffect(() => {
+    if (
+      formData &&
+      !wildcardCertificates.some(certificate => certificate.arn === formData)
+    ) {
+      onChange('');
+    }
+  }, [formData, onChange, wildcardCertificates]);
 
   const hasErrors = Boolean(rawErrors?.length) || Boolean(error);
-  const selectedCertificate = certificates.find(c => c.arn === (formData ?? ''));
   const helperText =
     error ??
     (rawErrors?.length
@@ -137,30 +187,12 @@ export const AcmCertificatePickerField = (
         <MenuItem value="">
           <em>선택 안 함</em>
         </MenuItem>
-        {certificates.map(certificate => (
+        {wildcardCertificates.map(certificate => (
           <MenuItem key={certificate.arn} value={certificate.arn}>
-            {certificate.domainName}
+            {certificate.displayDomain}
           </MenuItem>
         ))}
       </Select>
-      <TextField
-        margin="dense"
-        label="선택된 ACM 도메인"
-        value={selectedCertificate?.domainName ?? ''}
-        InputProps={{ readOnly: true }}
-        disabled
-        variant="outlined"
-        fullWidth
-      />
-      <TextField
-        margin="dense"
-        label="선택된 ACM ARN"
-        value={selectedCertificate?.arn ?? ''}
-        InputProps={{ readOnly: true }}
-        disabled
-        variant="outlined"
-        fullWidth
-      />
       <FormHelperText>{helperText}</FormHelperText>
     </FormControl>
   );
