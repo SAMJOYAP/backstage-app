@@ -41,7 +41,6 @@ export const AcmCertificatePickerField = (
     uiSchema,
     idSchema,
     schema,
-    formContext,
   } = props;
 
   const discoveryApi = useApi(discoveryApiRef);
@@ -53,12 +52,8 @@ export const AcmCertificatePickerField = (
   const region = uiSchema['ui:options']?.region ?? 'ap-northeast-2';
   const statuses = uiSchema['ui:options']?.statuses ?? ['ISSUED'];
 
-  const formDataMap = (formContext as { formData?: Record<string, unknown> })
-    ?.formData;
-  const dynamicDomainSuffix =
-    typeof formDataMap?.baseDomain === 'string' ? formDataMap.baseDomain : '';
   const optionDomainSuffix = uiSchema['ui:options']?.domainSuffix ?? '';
-  const domainSuffix = dynamicDomainSuffix || optionDomainSuffix;
+  const domainSuffix = optionDomainSuffix;
 
   const statusesParam = useMemo(() => statuses.join(','), [statuses]);
 
@@ -148,6 +143,15 @@ export const AcmCertificatePickerField = (
           </MenuItem>
         ))}
       </Select>
+      <TextField
+        margin="dense"
+        label="선택된 ACM 도메인"
+        value={selectedCertificate?.domainName ?? ''}
+        InputProps={{ readOnly: true }}
+        disabled
+        variant="outlined"
+        fullWidth
+      />
       <TextField
         margin="dense"
         label="선택된 ACM ARN"
