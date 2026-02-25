@@ -11,6 +11,7 @@ import {
   InputLabel,
   MenuItem,
   Select,
+  TextField,
 } from '@material-ui/core';
 
 type UiOptions = {
@@ -113,6 +114,7 @@ export const AcmCertificatePickerField = (
   }, [certificates, formData, onChange]);
 
   const hasErrors = Boolean(rawErrors?.length) || Boolean(error);
+  const selectedCertificate = certificates.find(c => c.arn === (formData ?? ''));
   const helperText =
     error ??
     (rawErrors?.length
@@ -142,10 +144,19 @@ export const AcmCertificatePickerField = (
         </MenuItem>
         {certificates.map(certificate => (
           <MenuItem key={certificate.arn} value={certificate.arn}>
-            {`${certificate.domainName} (${certificate.arn})`}
+            {certificate.domainName}
           </MenuItem>
         ))}
       </Select>
+      <TextField
+        margin="dense"
+        label="선택된 ACM ARN"
+        value={selectedCertificate?.arn ?? ''}
+        InputProps={{ readOnly: true }}
+        disabled
+        variant="outlined"
+        fullWidth
+      />
       <FormHelperText>{helperText}</FormHelperText>
     </FormControl>
   );
