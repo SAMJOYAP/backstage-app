@@ -220,6 +220,8 @@ export const TemplateStackCard = ({
   const description = template.metadata.description ?? '템플릿 설명이 없습니다.';
   const ownerRefs = getEntityRelations(template, RELATION_OWNED_BY);
   const templateType = template.spec.type ?? 'template';
+  const hasTerraformTag =
+    (template.metadata.tags ?? []).map(tag => tag.toLowerCase()).includes('terraform');
   const typeChipColor =
     templateType === 'infrastructure' ? '#0891B2' : '#16A34A';
   const typeChipBg =
@@ -287,6 +289,13 @@ export const TemplateStackCard = ({
               label={templateType}
               style={{ backgroundColor: typeChipBg, color: typeChipColor }}
             />
+            {hasTerraformTag ? (
+              <Chip
+                size="small"
+                label="Terraform"
+                style={{ backgroundColor: '#7C3AED22', color: '#7C3AED' }}
+              />
+            ) : null}
           </Box>
           <Box className={classes.ownerRow}>
             {ownerRefs.length > 0 ? (
