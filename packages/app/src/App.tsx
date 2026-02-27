@@ -160,6 +160,16 @@ const app = createApp({
   ],
 });
 
+const hideRayTemplate = (template: { metadata?: { name?: string; title?: string } }) => {
+  const name = (template.metadata?.name ?? '').toLowerCase();
+  const title = (template.metadata?.title ?? '').toLowerCase();
+  return !(
+    name === 'ray-serve-kubernetes' ||
+    title.includes('ray service on kubernetes') ||
+    title.includes('ray service on kubernets')
+  );
+};
+
 const routes = (
   <FlatRoutes>
     <Route path="/" element={<Navigate to="home" />} />
@@ -185,6 +195,7 @@ const routes = (
       element={
         <ScaffolderPage
           components={{ TemplateCardComponent: TemplateStackCard }}
+          templateFilter={hideRayTemplate}
         >
           <ScaffolderFieldExtensions>
             <EksClusterPickerFieldExtension />
