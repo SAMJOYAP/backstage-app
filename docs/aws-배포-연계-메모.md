@@ -413,3 +413,42 @@ g, backstage, role:backstage
   - 장기 Access Key 주입 대신 IRSA 사용
   - `backstage-already11` ServiceAccount에 IAM Role 연결 후
     `acm:ListCertificates`(권장: `acm:DescribeCertificate`) 권한 부여
+
+---
+
+## 최신 운영 메모 (2026-02-25 심화)
+
+### 1) IRSA 역할 실조치 내용
+
+- 배경:
+  - `backstage-already11` ServiceAccount annotation은 있었지만 실제 IAM Role이 없어 `AssumeRoleWithWebIdentity`가 실패했다.
+- 조치:
+  - 역할 생성: `backstage-already11-irsa-role`
+  - Trust policy 조건:
+    - OIDC issuer: `oidc.eks.ap-northeast-2.amazonaws.com/id/D5683F7CB96AE5CA1588D01B32689F30`
+    - `sub`: `system:serviceaccount:backstage-already11:backstage-already11`
+    - `aud`: `sts.amazonaws.com`
+  - 권한 정책:
+    - `acm:ListCertificates`, `acm:DescribeCertificate`
+    - `eks:ListClusters`, `eks:DescribeCluster`
+- 검증:
+  - Pod 내부 `aws sts get-caller-identity` 성공
+  - Pod 내부 `aws acm list-certificates`, `aws eks list-clusters` 성공
+
+### 2) EKS 목록 간헐 실패 해석
+
+- 동일 시점에 `200`과 `500(AccessDenied)`가 교차하면
+  - 정책 반영 전/후 요청이 섞였거나
+  - 세션/권한 전파 지연 구간일 수 있다.
+- 운영 기준:
+  - IAM 정책 수정 직후에는 1~2회 재시도 후 최종 판정
+  - 최종 판정은 Pod 내부 `aws eks list-clusters`로 확인
+
+### 3) 도메인-인증서 매칭 실수 방지
+
+- 증상:
+  - Ingress에 HTTPS annotation이 있어도 인증서 도메인이 host와 불일치하면 접속 경고/실패가 발생할 수 있다.
+- 사례:
+  - `ergerh.already11.cloud`에 `*.sesac.already11.cloud` 인증서가 선택됨
+- 조치:
+  - `*.already11.cloud`를 포함하는 인증서 ARN으로 교체

@@ -159,7 +159,7 @@ const fallbackTemplateMeta: Record<
   { icon: keyof typeof logoMap; color: string; stack: string }
 > = {
   'nodejs-nginx-webapp': { icon: 'nodejs', color: '#3C873A', stack: 'Node.js' },
-  'springboot-gradle-apache': { icon: 'java', color: '#EA6A47', stack: 'Java' },
+  'springboot-apache': { icon: 'java', color: '#EA6A47', stack: 'Java' },
   'terraform-eks': { icon: 'eks', color: '#0EA5E9', stack: 'EKS' },
   'terraform-ec2': { icon: 'ec2', color: '#F59E0B', stack: 'EC2' },
   'terraform-rds': { icon: 'rds', color: '#2563EB', stack: 'RDS' },
